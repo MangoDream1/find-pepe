@@ -19,8 +19,8 @@ func hash(s string) string {
 	return hex.EncodeToString(sha1Bytes[:])
 }
 
-func writeFile(fileDir string, id string, extension string, b []byte) {
-	path := createPath(fileDir, id, extension)
+func writeFile(fileDir string, fileName string, b []byte) {
+	path := createPath(fileDir, fileName)
 
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, os.ModePerm)
@@ -34,8 +34,8 @@ func writeFile(fileDir string, id string, extension string, b []byte) {
 	utils.Check(err)
 }
 
-func readFile(fileDir string, id string, extension string) []byte {
-	path := createPath(fileDir, id, extension)
+func readFile(fileDir string, fileName string) []byte {
+	path := createPath(fileDir, fileName)
 
 	buffer, err := ioutil.ReadFile(path)
 	utils.Check(err)
@@ -43,8 +43,8 @@ func readFile(fileDir string, id string, extension string) []byte {
 	return buffer
 }
 
-func doesFileExist(fileDir string, id string, extension string) bool {
-	path := createPath(fileDir, id, extension)
+func doesFileExist(fileDir string, fileName string) bool {
+	path := createPath(fileDir, fileName)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			return false
@@ -53,8 +53,8 @@ func doesFileExist(fileDir string, id string, extension string) bool {
 	return true
 }
 
-func createReader(fileDir string, id string, extension string) *io.Reader {
-	path := createPath(fileDir, id, extension)
+func createReader(fileDir string, fileName string) *io.Reader {
+	path := createPath(fileDir, fileName)
 
 	f, err := os.Open(path)
 	utils.Check(err)
@@ -75,8 +75,8 @@ func readDir(dir string) []fs.FileInfo {
 	return fileInfos
 }
 
-func createPath(fileDir string, id string, extension string) string {
-	return filepath.Join(getProjectPath(), fileDir, addExtension(id, extension))
+func createPath(fileDir string, fileName string) string {
+	return filepath.Join(getProjectPath(), fileDir, fileName)
 }
 
 func getProjectPath() string {

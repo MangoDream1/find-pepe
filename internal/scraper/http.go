@@ -125,14 +125,14 @@ func (s *HttpScraper) storeHtml(r request) *HttpScraper {
 	doc, err := ioutil.ReadAll(r.response.Body)
 	utils.Check(err)
 
-	writeFile(httpDir, r.id, "html", doc)
+	writeFile(httpDir, addExtension(r.id, "html"), doc)
 	s.httpFileIds <- r.id
 
 	return s
 }
 
 func (s *HttpScraper) loadHtml(fileId string) *HttpScraper {
-	reader := createReader(httpDir, fileId, "html")
+	reader := createReader(httpDir, addExtension(fileId, "html"))
 
 	fmt.Println("adding reader")
 	*s.httpReaders <- reader
@@ -142,5 +142,5 @@ func (s *HttpScraper) loadHtml(fileId string) *HttpScraper {
 }
 
 func (s *HttpScraper) doesHtmlExist(fileId string) bool {
-	return doesFileExist(httpDir, fileId, "html")
+	return doesFileExist(httpDir, addExtension(fileId, "html"))
 }
