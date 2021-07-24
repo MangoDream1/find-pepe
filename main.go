@@ -6,9 +6,9 @@ func main() {
 	var allowedHrefSubstrings = []string{"4chan.org", "4channel.org"}
 	var requiredHrefSubstrings = []string{"https", "boards."}
 
-	s := scraper.NewScraper(allowedHrefSubstrings, requiredHrefSubstrings)
+	scraper := scraper.NewScraper(allowedHrefSubstrings, requiredHrefSubstrings)
+	go scraper.ReadDownloadedIds()
 
-	go s.ReadDownloadedIds()
-	go s.Start("https://www.4chan.org/")
+	go scraper.Start("https://www.4chan.org/")
 
 }
