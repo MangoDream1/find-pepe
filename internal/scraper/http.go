@@ -14,7 +14,7 @@ import (
 const httpDir = "data/http"
 
 type HttpScraper struct {
-	requests               chan request
+	requests               chan httpRequest
 	httpFileIds            chan string
 	httpReaders            *chan *io.Reader
 	hrefs                  chan string
@@ -22,9 +22,14 @@ type HttpScraper struct {
 	requiredHrefSubstrings []string
 }
 
-func newHttpScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, httpReaders *chan *io.Reader) *HttpScraper {
+type httpRequest struct {
+	id       string
+	response *http.Response
+}
+
+func newHttpScraper(httpReaders *chan *io.Reader, allowedHrefSubstrings []string, requiredHrefSubstrings []string) *HttpScraper {
 	return &HttpScraper{
-		requests:               make(chan request),
+		requests:               make(chan httpRequest),
 		httpFileIds:            make(chan string),
 		httpReaders:            httpReaders,
 		hrefs:                  make(chan string),
@@ -71,7 +76,6 @@ func (s *HttpScraper) findHref(reader *io.Reader) *HttpScraper {
 
 	doc.Find("a").Each(func(i int, selection *goquery.Selection) {
 		href, exists := selection.Attr("href")
-		fmt.Println(href)
 
 		if exists {
 			s.hrefs <- href
@@ -83,9 +87,14 @@ func (s *HttpScraper) findHref(reader *io.Reader) *HttpScraper {
 
 // FIXME: nasty return if it does already exist
 func (s *HttpScraper) getHttp(href string) *HttpScraper {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("An error has occurred while trying to retrieve href: %v with error %v; ignoring \n", href, err)
+		}
+	}()
+
 	requestId := hash(href)
 	if s.doesHtmlExist(requestId) {
-		fmt.Printf("Ignoring %v; already exists \n", href)
 		return s
 	}
 
@@ -117,11 +126,11 @@ func (s *HttpScraper) getURL(requestId string, url string) *HttpScraper {
 	}
 
 	fmt.Printf("Successfully fetched %v \n", url)
-	s.requests <- request{id: requestId, response: response}
+	s.requests <- httpRequest{id: requestId, response: response}
 	return s
 }
 
-func (s *HttpScraper) storeHtml(r request) *HttpScraper {
+func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
 	doc, err := ioutil.ReadAll(r.response.Body)
 	utils.Check(err)
 
@@ -133,10 +142,7 @@ func (s *HttpScraper) storeHtml(r request) *HttpScraper {
 
 func (s *HttpScraper) loadHtml(fileId string) *HttpScraper {
 	reader := createReader(httpDir, addExtension(fileId, "html"))
-
-	fmt.Println("adding reader")
 	*s.httpReaders <- reader
-	fmt.Println("adding reader 2")
 
 	return s
 }

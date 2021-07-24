@@ -2,27 +2,24 @@ package scraper
 
 import (
 	"io"
-	"net/http"
 )
 
 type Scraper struct {
-	httpScraper *HttpScraper
-	httpReaders chan *io.Reader
+	httpScraper  *HttpScraper
+	imageScraper *ImageScraper
+	httpReaders  chan *io.Reader
 }
 
-type request struct {
-	id       string
-	response *http.Response
-}
-
-func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string) *Scraper {
+func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, allowedImageTypes []string) *Scraper {
 	httpReaders := make(chan *io.Reader)
 
-	httpScraper := newHttpScraper(allowedHrefSubstrings, requiredHrefSubstrings, &httpReaders)
+	httpScraper := newHttpScraper(&httpReaders, allowedHrefSubstrings, requiredHrefSubstrings)
+	imageScraper := newImageScraper(allowedImageTypes)
 
 	return &Scraper{
-		httpReaders: httpReaders,
-		httpScraper: httpScraper,
+		httpReaders:  httpReaders,
+		imageScraper: imageScraper,
+		httpScraper:  httpScraper,
 	}
 }
 
@@ -33,15 +30,13 @@ func (s *Scraper) ReadDownloadedIds() *Scraper {
 
 func (s *Scraper) Start(startHref string) *Scraper {
 	go s.httpScraper.Start(startHref)
-
-	requestId := hash(startHref)
-
-	go s.httpScraper.getURL(requestId, startHref)
+	go s.imageScraper.Start()
 
 	for {
 		select {
 		case reader := <-s.httpReaders:
 			go s.httpScraper.findHref(reader)
+			go s.imageScraper.findHref(reader)
 		}
 	}
 }
