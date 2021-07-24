@@ -9,6 +9,6 @@ func main() {
 	scraper := scraper.NewScraper(allowedHrefSubstrings, requiredHrefSubstrings)
 	go scraper.ReadDownloadedIds()
 
-	go scraper.Start("https://www.4chan.org/")
+	scraper.Start("https://www.4chan.org/")
 
 }
