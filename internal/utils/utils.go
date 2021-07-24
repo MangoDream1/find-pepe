@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"crypto/sha1"
@@ -13,36 +13,36 @@ import (
 	"strings"
 )
 
-func hash(s string) string {
+func Hash(s string) string {
 	sha1Bytes := sha1.Sum([]byte(s))
 	return hex.EncodeToString(sha1Bytes[:])
 }
 
-func writeFile(fileDir string, id string, extension string, b []byte) {
+func WriteFile(fileDir string, id string, extension string, b []byte) {
 	path := createPath(fileDir, id, extension)
 
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, os.ModePerm)
-	check(err)
+	Check(err)
 
 	f, err := os.Create(path)
-	check(err)
+	Check(err)
 	defer f.Close()
 
 	_, err = f.Write(b)
-	check(err)
+	Check(err)
 }
 
-func readFile(fileDir string, id string, extension string) []byte {
+func ReadFile(fileDir string, id string, extension string) []byte {
 	path := createPath(fileDir, id, extension)
 
 	buffer, err := ioutil.ReadFile(path)
-	check(err)
+	Check(err)
 
 	return buffer
 }
 
-func doesFileExist(fileDir string, id string, extension string) bool {
+func DoesFileExist(fileDir string, id string, extension string) bool {
 	path := createPath(fileDir, id, extension)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
@@ -52,11 +52,11 @@ func doesFileExist(fileDir string, id string, extension string) bool {
 	return true
 }
 
-func createReader(fileDir string, id string, extension string) *io.Reader {
+func CreateReader(fileDir string, id string, extension string) *io.Reader {
 	path := createPath(fileDir, id, extension)
 
 	f, err := os.Open(path)
-	check(err)
+	Check(err)
 
 	var r io.Reader
 	r = f
@@ -64,17 +64,17 @@ func createReader(fileDir string, id string, extension string) *io.Reader {
 	return &r
 }
 
-func readDir(dir string) []fs.FileInfo {
+func ReadDir(dir string) []fs.FileInfo {
 	dir = filepath.Join(getProjectPath(), dir)
 	err := os.MkdirAll(dir, os.ModePerm)
-	check(err)
+	Check(err)
 
 	fileInfos, err := ioutil.ReadDir(dir)
-	check(err)
+	Check(err)
 	return fileInfos
 }
 
-func check(e error) {
+func Check(e error) {
 	if e != nil {
 		panic(e)
 	}
@@ -86,7 +86,7 @@ func createPath(fileDir string, id string, extension string) string {
 
 func getProjectPath() string {
 	projectPath, err := os.Getwd()
-	check(err)
+	Check(err)
 	return projectPath
 }
 
@@ -94,13 +94,13 @@ func addExtension(id string, extension string) string {
 	return fmt.Sprintf("%s.%s", id, extension)
 }
 
-func removeExtension(filename string) string {
+func RemoveExtension(filename string) string {
 	extension := filepath.Ext(filename)
 	n := strings.LastIndex(filename, extension)
 	return filename[:n]
 }
 
-func stringShouldContainOneFilter(s string, filters []string) bool {
+func StringShouldContainOneFilter(s string, filters []string) bool {
 	for _, filter := range filters {
 		if strings.Contains(s, filter) {
 			return true
@@ -109,7 +109,7 @@ func stringShouldContainOneFilter(s string, filters []string) bool {
 	return false
 }
 
-func stringShouldContainAllFilters(s string, filters []string) bool {
+func StringShouldContainAllFilters(s string, filters []string) bool {
 	count := 0
 	for _, filter := range filters {
 		if strings.Contains(s, filter) {
@@ -119,13 +119,13 @@ func stringShouldContainAllFilters(s string, filters []string) bool {
 	return len(filters) == count
 }
 
-func getHostname(rawurl string) string {
+func GetHostname(rawurl string) string {
 	parsed, err := url.Parse(rawurl)
-	check(err)
+	Check(err)
 	return parsed.Hostname()
 }
 
-func cleanUpUrl(url string) string {
+func CleanUpUrl(url string) string {
 	if len(url) < 2 {
 		return url
 	}

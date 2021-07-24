@@ -1,4 +1,4 @@
-module github.com/MangoDream1/go-find-pepe
+module go-find-pepe
 
 go 1.14
 

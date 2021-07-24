@@ -1,10 +1,12 @@
-package main
+package scraper
 
 import (
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"go-find-pepe/internal/utils"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -37,7 +39,7 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string)
 }
 
 func (s *Scraper) Start(startHref string) *Scraper {
-	requestId := hash(startHref)
+	requestId := utils.Hash(startHref)
 	go s.getURL(requestId, startHref)
 
 	for {
@@ -56,17 +58,17 @@ func (s *Scraper) Start(startHref string) *Scraper {
 
 // FIXME: nasty return if it does already exist
 func (s *Scraper) GetHttp(href string) *Scraper {
-	requestId := hash(href)
+	requestId := utils.Hash(href)
 	if s.doesHtmlExist(requestId) {
 		fmt.Printf("Ignoring %v; already exists \n", href)
 		return s
 	}
 
-	cleanedHref := cleanUpUrl(href)
-	hostname := getHostname(cleanedHref)
+	cleanedHref := utils.CleanUpUrl(href)
+	hostname := utils.GetHostname(cleanedHref)
 
-	correctAllowedSubstrings := stringShouldContainOneFilter(hostname, s.allowedHrefSubstrings)
-	correctRequiredSubstrings := stringShouldContainAllFilters(cleanedHref, s.requiredHrefSubstrings)
+	correctAllowedSubstrings := utils.StringShouldContainOneFilter(hostname, s.allowedHrefSubstrings)
+	correctRequiredSubstrings := utils.StringShouldContainAllFilters(cleanedHref, s.requiredHrefSubstrings)
 
 	if correctAllowedSubstrings && correctRequiredSubstrings {
 		go s.getURL(requestId, cleanedHref)
@@ -96,30 +98,30 @@ func (s *Scraper) getURL(requestId string, url string) *Scraper {
 
 func (s *Scraper) storeHtml(r request) *Scraper {
 	doc, err := ioutil.ReadAll(r.response.Body)
-	check(err)
+	utils.Check(err)
 
-	writeFile(httpDir, r.id, "html", doc)
+	utils.WriteFile(httpDir, r.id, "html", doc)
 	s.HttpFileIds <- r.id
 
 	return s
 }
 
 func (s *Scraper) loadHtml(fileId string) *Scraper {
-	reader := createReader(httpDir, fileId, "html")
+	reader := utils.CreateReader(httpDir, fileId, "html")
 	s.readers <- reader
 
 	return s
 }
 
 func (s *Scraper) ReadDownloadedIds() *Scraper {
-	fileInfos := readDir(httpDir)
+	fileInfos := utils.ReadDir(httpDir)
 
 	for _, file := range fileInfos {
 		if file.IsDir() {
 			continue
 		}
 
-		id := removeExtension(file.Name())
+		id := utils.RemoveExtension(file.Name())
 		s.HttpFileIds <- id
 	}
 
@@ -128,7 +130,7 @@ func (s *Scraper) ReadDownloadedIds() *Scraper {
 
 func (s *Scraper) findHref(reader *io.Reader) *Scraper {
 	doc, err := goquery.NewDocumentFromReader(*reader)
-	check(err)
+	utils.Check(err)
 
 	doc.Find("a").Each(func(i int, selection *goquery.Selection) {
 		href, exists := selection.Attr("href")
@@ -142,5 +144,5 @@ func (s *Scraper) findHref(reader *io.Reader) *Scraper {
 }
 
 func (s *Scraper) doesHtmlExist(fileId string) bool {
-	return doesFileExist(httpDir, fileId, "html")
+	return utils.DoesFileExist(httpDir, fileId, "html")
 }
