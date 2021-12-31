@@ -33,10 +33,9 @@ func (s *Scraper) Start(startHref string) *Scraper {
 	go s.imageScraper.Start()
 
 	for {
-		select {
-		case reader := <-s.httpReaders:
-			go s.httpScraper.findHref(reader)
-			go s.imageScraper.findHref(reader)
-		}
+		reader := <-s.httpReaders
+		go s.httpScraper.findHref(reader)
+		go s.imageScraper.findHref(reader)
 	}
+
 }

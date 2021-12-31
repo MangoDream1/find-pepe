@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"go-find-pepe/internal/utils"
 
@@ -62,17 +63,18 @@ func (s *ImageScraper) Start() *ImageScraper {
 // FIXME: nasty return if it does already exist
 func (s *ImageScraper) getImage(href string) *ImageScraper {
 	cleanedHref := cleanUpUrl(href)
+	fileName := s.transformUrlIntoFilename(cleanedHref)
 
 	correctRequiredSubstrings := stringShouldContainOneFilter(cleanedHref, s.allowedImageTypes)
 	if !correctRequiredSubstrings {
 		return s
 	}
 
-	if s.doesImageExist(cleanedHref) {
+	if s.doesImageExist(fileName) {
 		return s
 	}
 
-	go s.getURL(cleanedHref, cleanedHref)
+	go s.getURL(fileName, cleanedHref)
 
 	return s
 }
@@ -154,4 +156,9 @@ func (s *ImageScraper) loadImage(fileName string) *ImageScraper {
 
 func (s *ImageScraper) doesImageExist(fileName string) bool {
 	return doesFileExist(imageDir, fileName)
+}
+
+func (s *ImageScraper) transformUrlIntoFilename(url string) string {
+	p := strings.Split(url, `/`)
+	return strings.Join(p[2:], `/`)
 }
