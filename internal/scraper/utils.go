@@ -22,6 +22,7 @@ func hash(s string) string {
 
 func writeFile(fileDir string, fileName string, b []byte) {
 	path := createPath(fileDir, fileName)
+	fmt.Printf("Writing file to %v\n", path)
 
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, os.ModePerm)
@@ -33,6 +34,7 @@ func writeFile(fileDir string, fileName string, b []byte) {
 
 	_, err = f.Write(b)
 	utils.Check(err)
+	fmt.Printf("Successfully written file to %v\n", path)
 }
 
 func readFile(fileDir string, fileName string) []byte {
@@ -135,6 +137,8 @@ func cleanUpUrl(url string) string {
 }
 
 func getURL(fileName string, url string) (response *http.Response, success bool, canRetry bool) {
+	fmt.Printf("Fetching %v\n", url)
+
 	response, err := http.Get(url)
 	canRetry = false
 	success = false

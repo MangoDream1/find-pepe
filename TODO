@@ -1,0 +1,2 @@
+- find out why it stops; probably does not find all the hrefs or hrefs are not added correctly
+- graceful exit after all hrefs are successfully added and images downloaded

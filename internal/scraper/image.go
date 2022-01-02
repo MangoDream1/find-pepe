@@ -93,7 +93,7 @@ func (s *ImageScraper) findHref(reader *io.Reader) *ImageScraper {
 func (s *ImageScraper) storeImage(r imageRequest) *ImageScraper {
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Printf("An error has occurred while trying to store an image with name: %v; error: %err \n", r.fileName, err)
+			fmt.Printf("An error has occurred while trying to store an image with name: %v; error: %v \n", r.fileName, err)
 		}
 	}()
 
