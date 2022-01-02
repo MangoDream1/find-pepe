@@ -117,7 +117,7 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 		if success {
 			s.requests <- httpRequest{id: requestId, response: response}
 		} else if canRetry {
-			fmt.Printf("Retrying url: %v", href)
+			fmt.Printf("Retrying url: %v\n", href)
 			s.hrefs <- href
 		}
 	}

@@ -67,7 +67,7 @@ func (s *ImageScraper) getImage(href string) *ImageScraper {
 	if success {
 		s.requests <- imageRequest{fileName: fileName, response: response}
 	} else if canRetry {
-		fmt.Printf("Retrying url: %v", href)
+		fmt.Printf("Retrying url: %v\n", href)
 		s.hrefs <- href
 	}
 
