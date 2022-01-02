@@ -40,14 +40,13 @@ func newImageScraper(allowedImageTypes []string) *ImageScraper {
 func (s *ImageScraper) Start() *ImageScraper {
 	for {
 		select {
-		// case httpFileId := <-s.httpFileIds:
-		// go s.loadHtml(httpFileId)
 		case request := <-s.requests:
 			go s.storeImage(request)
 		case href := <-s.hrefs:
 			go func() {
 				defer func() {
 					if err := recover(); err != nil {
+						// fmt.Printf("Error: adding %v back\n", href)
 						s.hrefs <- href
 					}
 				}()
@@ -74,7 +73,14 @@ func (s *ImageScraper) getImage(href string) *ImageScraper {
 		return s
 	}
 
-	go s.getURL(fileName, cleanedHref)
+	response, success, canRetry := getURL(fileName, cleanedHref)
+
+	if success {
+		s.requests <- imageRequest{fileName: fileName, response: response}
+	} else if canRetry {
+		fmt.Printf("Retrying url: %v", href)
+		s.hrefs <- href
+	}
 
 	return s
 }
@@ -92,42 +98,6 @@ func (s *ImageScraper) findHref(reader *io.Reader) *ImageScraper {
 		}
 	})
 
-	return s
-}
-
-func (s *ImageScraper) getURL(fileName string, url string) *ImageScraper {
-	response, err := http.Get(url)
-
-	if err != nil {
-		msg := err.Error()
-
-		if stringShouldContainOneFilter(msg, []string{"timeout", "connection reset"}) {
-			fmt.Printf("Retrying %v after timeout \n", url)
-			s.hrefs <- url
-			return s
-		}
-
-		fmt.Printf("Failed to GET %v; error %v; ignoring \n", url, msg)
-		return s
-	}
-
-	if response.StatusCode == 503 {
-		fmt.Printf("503 response %v; retrying \n", url)
-		s.hrefs <- url
-		return s
-	}
-
-	if response.StatusCode == 404 {
-		fmt.Printf("404 response: %v; ignoring \n", url)
-		return s
-	}
-
-	if response.StatusCode != 200 {
-		panic(fmt.Sprintf("Non-OK response: %v %v", url, response.StatusCode))
-	}
-
-	fmt.Printf("Successfully fetched %v \n", url)
-	s.requests <- imageRequest{fileName: fileName, response: response}
 	return s
 }
 

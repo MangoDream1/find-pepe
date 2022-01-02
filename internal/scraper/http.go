@@ -56,7 +56,14 @@ func (s *HttpScraper) readDownloadedIds() *HttpScraper {
 func (s *HttpScraper) Start(startHref string) *HttpScraper {
 	requestId := hash(startHref)
 
-	go s.getURL(requestId, startHref)
+	go func() {
+		response, success, _ := getURL(requestId, startHref)
+		if success {
+			s.requests <- httpRequest{id: requestId, response: response}
+		} else {
+			panic(fmt.Sprintf("Failed to retrive startHref %v", startHref))
+		}
+	}()
 
 	for {
 		select {
@@ -105,28 +112,16 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 	correctRequiredSubstrings := stringShouldContainAllFilters(cleanedHref, s.requiredHrefSubstrings)
 
 	if correctAllowedSubstrings && correctRequiredSubstrings {
-		go s.getURL(requestId, cleanedHref)
+		response, success, canRetry := getURL(requestId, cleanedHref)
+
+		if success {
+			s.requests <- httpRequest{id: requestId, response: response}
+		} else if canRetry {
+			fmt.Printf("Retrying url: %v", href)
+			s.hrefs <- href
+		}
 	}
 
-	return s
-}
-
-func (s *HttpScraper) getURL(requestId string, url string) *HttpScraper {
-	response, err := http.Get(url)
-
-	if err != nil {
-		fmt.Printf("Failed to GET %v; ignoring \n", url)
-		fmt.Println(err.Error())
-		return s
-	}
-
-	if response.StatusCode != 200 {
-		fmt.Printf("Non-OK response: %v %v; ignoring \n", url, response.StatusCode)
-		return s
-	}
-
-	fmt.Printf("Successfully fetched %v \n", url)
-	s.requests <- httpRequest{id: requestId, response: response}
 	return s
 }
 

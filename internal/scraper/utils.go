@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -131,4 +132,42 @@ func cleanUpUrl(url string) string {
 	}
 
 	return url
+}
+
+func getURL(fileName string, url string) (response *http.Response, success bool, canRetry bool) {
+	response, err := http.Get(url)
+	canRetry = false
+	success = false
+
+	if err != nil {
+		msg := err.Error()
+
+		if stringShouldContainOneFilter(msg, []string{"timeout", "connection reset"}) {
+			fmt.Printf("Failed to GET %v; timeout\n", url)
+			canRetry = true
+			return
+		}
+
+		fmt.Printf("Failed to GET %v; unknown error %v\n", url, msg)
+		return
+	}
+
+	if response.StatusCode == 503 {
+		fmt.Printf("Failed to GET %v; 503 response\n", url)
+		canRetry = true
+		return
+	}
+
+	if response.StatusCode == 404 {
+		fmt.Printf("Failed to GET %v; 404 response\n", url)
+		return
+	}
+
+	if response.StatusCode != 200 {
+		panic(fmt.Sprintf("Failed to GET %v; non-OK response: %v", url, response.StatusCode))
+	}
+
+	fmt.Printf("Successfully fetched %v \n", url)
+	success = true
+	return
 }
