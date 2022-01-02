@@ -43,18 +43,7 @@ func (s *ImageScraper) Start() *ImageScraper {
 		case request := <-s.requests:
 			go s.storeImage(request)
 		case href := <-s.hrefs:
-			go func() {
-				defer func() {
-					if err := recover(); err != nil {
-						// fmt.Printf("Error: adding %v back\n", href)
-						s.hrefs <- href
-					}
-				}()
-
-				s.getImage(href)
-
-			}()
-
+			go s.getImage(href)
 		}
 	}
 }
@@ -62,13 +51,13 @@ func (s *ImageScraper) Start() *ImageScraper {
 // FIXME: nasty return if it does already exist
 func (s *ImageScraper) getImage(href string) *ImageScraper {
 	cleanedHref := cleanUpUrl(href)
-	fileName := s.transformUrlIntoFilename(cleanedHref)
 
 	correctRequiredSubstrings := stringShouldContainOneFilter(cleanedHref, s.allowedImageTypes)
 	if !correctRequiredSubstrings {
 		return s
 	}
 
+	fileName := s.transformUrlIntoFilename(cleanedHref)
 	if s.doesImageExist(fileName) {
 		return s
 	}
