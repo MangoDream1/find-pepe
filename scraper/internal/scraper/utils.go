@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -174,4 +176,21 @@ func getURL(fileName string, url string) (response *http.Response, success bool,
 	fmt.Printf("Successfully fetched %v \n", url)
 	success = true
 	return
+}
+
+func createSingleFileMultiPart(key string, fileName string, file []byte) (*bytes.Buffer, *multipart.Writer) {
+	var b bytes.Buffer
+	writer := multipart.NewWriter(&b)
+
+	part, err := writer.CreateFormFile(key, fileName)
+	utils.Check(err)
+
+	r := bytes.NewReader(file)
+	_, err = io.Copy(part, r)
+	utils.Check(err)
+
+	err = writer.Close()
+	utils.Check(err)
+
+	return &b, writer
 }

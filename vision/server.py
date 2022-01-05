@@ -28,6 +28,9 @@ data_augmentation = keras.Sequential(
 if (os.path.isfile(MODEL_WEIGHTS_LOCATION) == False):
   raise Exception("Model weights not stored at %s; cannot load model" % MODEL_WEIGHTS_LOCATION)
 
+if (os.path.isdir(FILE_UPLOAD_FOLDER) == False):
+    os.makedirs(FILE_UPLOAD_FOLDER)
+
 def make_model(input_shape, num_classes):
   inputs = keras.Input(shape=input_shape)
   # Image augmentation block
@@ -103,7 +106,7 @@ def hello_world():
 
 @app.route("/", methods = ["POST"])
 def predict():
-  file = request.files['value']
+  file = request.files['file']
 
   file_extension = split_file_name_and_extension(file.filename)[1]
   if (file_extension not in ALLOWED_FILE_EXTENSIONS):
