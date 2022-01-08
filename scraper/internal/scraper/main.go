@@ -7,13 +7,13 @@ import (
 type Scraper struct {
 	httpScraper  *HttpScraper
 	imageScraper *ImageScraper
-	httpReaders  chan *io.Reader
+	httpReaders  chan io.Reader
 }
 
 func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, allowedImageTypes []string) *Scraper {
-	httpReaders := make(chan *io.Reader)
+	httpReaders := make(chan io.Reader)
 
-	httpScraper := newHttpScraper(&httpReaders, allowedHrefSubstrings, requiredHrefSubstrings)
+	httpScraper := newHttpScraper(httpReaders, allowedHrefSubstrings, requiredHrefSubstrings)
 	imageScraper := newImageScraper(allowedImageTypes)
 
 	return &Scraper{
@@ -23,10 +23,11 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 	}
 }
 
-func (s *Scraper) ReadDownloadedIds() *Scraper {
-	s.httpScraper.readDownloadedIds()
-	return s
-}
+// TODO: refactor
+// func (s *Scraper) ReadDownloadedIds() *Scraper {
+// 	s.httpScraper.readDownloadedIds()
+// 	return s
+// }
 
 func (s *Scraper) Start(startHref string) *Scraper {
 	go s.httpScraper.Start(startHref)
@@ -34,8 +35,6 @@ func (s *Scraper) Start(startHref string) *Scraper {
 
 	for {
 		reader := <-s.httpReaders
-		go s.httpScraper.findHref(reader)
 		go s.imageScraper.findHref(reader)
 	}
-
 }

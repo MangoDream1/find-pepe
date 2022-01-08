@@ -1,10 +1,11 @@
 package scraper
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
+	"strings"
 
 	"go-find-pepe/internal/utils"
 
@@ -15,22 +16,21 @@ const httpDir = "data/http"
 
 type HttpScraper struct {
 	requests               chan httpRequest
-	httpFileIds            chan string
-	httpReaders            *chan *io.Reader
+	httpReaders            chan io.Reader
 	hrefs                  chan string
 	allowedHrefSubstrings  []string
 	requiredHrefSubstrings []string
 }
 
 type httpRequest struct {
-	id       string
-	response *http.Response
+	id   string
+	href string
+	data []byte
 }
 
-func newHttpScraper(httpReaders *chan *io.Reader, allowedHrefSubstrings []string, requiredHrefSubstrings []string) *HttpScraper {
+func newHttpScraper(httpReaders chan io.Reader, allowedHrefSubstrings []string, requiredHrefSubstrings []string) *HttpScraper {
 	return &HttpScraper{
 		requests:               make(chan httpRequest),
-		httpFileIds:            make(chan string),
 		httpReaders:            httpReaders,
 		hrefs:                  make(chan string),
 		allowedHrefSubstrings:  allowedHrefSubstrings,
@@ -38,20 +38,20 @@ func newHttpScraper(httpReaders *chan *io.Reader, allowedHrefSubstrings []string
 	}
 }
 
-func (s *HttpScraper) readDownloadedIds() *HttpScraper {
-	fileInfos := readDir(httpDir)
+// TODO: refactor
+// func (s *HttpScraper) readDownloadedIds() *HttpScraper {
+// 	fileInfos := readDir(httpDir)
 
-	for _, file := range fileInfos {
-		if file.IsDir() {
-			continue
-		}
+// 	for _, file := range fileInfos {
+// 		if file.IsDir() {
+// 			continue
+// 		}
 
-		id := removeExtension(file.Name())
-		s.httpFileIds <- id
-	}
+// 		id := removeExtension(file.Name())
+// 	}
 
-	return s
-}
+// 	return s
+// }
 
 func (s *HttpScraper) Start(startHref string) *HttpScraper {
 	requestId := hash(startHref)
@@ -59,7 +59,9 @@ func (s *HttpScraper) Start(startHref string) *HttpScraper {
 	go func() {
 		response, success, _ := getURL(requestId, startHref)
 		if success {
-			s.requests <- httpRequest{id: requestId, response: response}
+			data, err := ioutil.ReadAll(response.Body)
+			utils.Check(err)
+			s.requests <- httpRequest{id: requestId, data: data, href: startHref}
 		} else {
 			panic(fmt.Sprintf("Failed to retrive startHref %v", startHref))
 		}
@@ -67,25 +69,44 @@ func (s *HttpScraper) Start(startHref string) *HttpScraper {
 
 	for {
 		select {
-		case httpFileId := <-s.httpFileIds:
-			go s.loadHtml(httpFileId)
 		case request := <-s.requests:
 			go s.storeHtml(request)
+			go s.findHref(request)
+			s.httpReaders <- bytes.NewBuffer(request.data)
 		case href := <-s.hrefs:
 			go s.getHttp(href)
 		}
 	}
 }
 
-func (s *HttpScraper) findHref(reader *io.Reader) *HttpScraper {
-	doc, err := goquery.NewDocumentFromReader(*reader)
+func (s *HttpScraper) findHref(request httpRequest) *HttpScraper {
+	reader := bytes.NewReader(request.data)
+	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
 	doc.Find("a").Each(func(i int, selection *goquery.Selection) {
 		href, exists := selection.Attr("href")
 
+		unallowed := [2]string{"javascript", "#"}
+		for _, s := range unallowed {
+			if strings.Contains(href, s) {
+				return
+			}
+		}
+
+		if !strings.Contains(href, "/") {
+			return
+		}
+
+		cleanedHref := cleanUpUrl(href)
+
+		hostname := getHostname(cleanedHref)
+		if hostname == "" && cleanedHref[0] != '/' {
+			cleanedHref = request.href + cleanedHref
+		}
+
 		if exists {
-			s.hrefs <- href
+			s.hrefs <- cleanedHref
 		}
 	})
 
@@ -115,7 +136,10 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 		response, success, canRetry := getURL(requestId, cleanedHref)
 
 		if success {
-			s.requests <- httpRequest{id: requestId, response: response}
+			data, err := ioutil.ReadAll(response.Body)
+			utils.Check(err)
+
+			s.requests <- httpRequest{id: requestId, data: data, href: href}
 		} else if canRetry {
 			fmt.Printf("Retrying url: %v\n", href)
 			s.hrefs <- href
@@ -126,21 +150,17 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 }
 
 func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
-	doc, err := ioutil.ReadAll(r.response.Body)
-	utils.Check(err)
-
-	writeFile(httpDir, addExtension(r.id, "html"), doc)
-	s.httpFileIds <- r.id
-
+	writeFile(httpDir, addExtension(r.id, "html"), r.data)
 	return s
 }
 
-func (s *HttpScraper) loadHtml(fileId string) *HttpScraper {
-	reader := createReader(httpDir, addExtension(fileId, "html"))
-	*s.httpReaders <- reader
+// TODO: refactor
+// func (s *HttpScraper) loadHtml(fileId string) *HttpScraper {
+// 	reader := createReader(httpDir, addExtension(fileId, "html"))
+// 	*s.httpReaders <- reader
 
-	return s
-}
+// 	return s
+// }
 
 func (s *HttpScraper) doesHtmlExist(fileId string) bool {
 	return doesFileExist(httpDir, addExtension(fileId, "html"))

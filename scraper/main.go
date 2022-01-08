@@ -9,7 +9,7 @@ func main() {
 	var allowedImageTypes = []string{".jpg", ".gif", ".png"}
 
 	scraper := scraper.NewScraper(allowedHrefSubstrings, requiredHrefSubstrings, allowedImageTypes)
-	go scraper.ReadDownloadedIds()
+	// go scraper.ReadDownloadedIds()
 
 	scraper.Start("https://www.4chan.org/")
 }

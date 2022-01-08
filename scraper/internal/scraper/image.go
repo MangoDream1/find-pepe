@@ -96,8 +96,8 @@ func (s *ImageScraper) getImage(href string) *ImageScraper {
 	return s
 }
 
-func (s *ImageScraper) findHref(reader *io.Reader) *ImageScraper {
-	doc, err := goquery.NewDocumentFromReader(*reader)
+func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
+	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
 	fileSelection := doc.Find("div .file").Find("div .fileText")
