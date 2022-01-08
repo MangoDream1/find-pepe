@@ -122,7 +122,7 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 	}()
 
 	requestId := hash(href)
-	if s.doesHtmlExist(requestId) {
+	if s.doesHtmlExist(href) {
 		return s
 	}
 
@@ -150,7 +150,8 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 }
 
 func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
-	writeFile(httpDir, addExtension(r.id, "html"), r.data)
+	fileName := s.createFileName(r.href)
+	writeFile(httpDir, fileName, r.data)
 	return s
 }
 
@@ -162,6 +163,18 @@ func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
 // 	return s
 // }
 
-func (s *HttpScraper) doesHtmlExist(fileId string) bool {
-	return doesFileExist(httpDir, addExtension(fileId, "html"))
+func (s *HttpScraper) doesHtmlExist(href string) bool {
+	fileName := s.createFileName(href)
+	return doesFileExist(httpDir, fileName)
+}
+
+func (s *HttpScraper) createFileName(href string) (fileName string) {
+	fileName = href
+	fileName = strings.Replace(fileName, "https://", "", 1)
+	fileName = strings.Replace(fileName, "www.", "", 1)
+	if fileName[len(fileName)-1] == '/' {
+		fileName = fileName[0 : len(fileName)-1]
+	}
+	fileName = addExtension(fileName, "html")
+	return
 }
