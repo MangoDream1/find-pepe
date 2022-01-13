@@ -115,6 +115,11 @@ func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
 func (s *ImageScraper) classifyImage(r imageRequest) *ImageScraper {
 	defer func() {
 		if err := recover(); err != nil {
+			if strings.Contains(err.(string), "stream: error:") {
+				fmt.Println("Received stream error creating MultiPart; retrying...")
+				s.requests <- r
+			}
+
 			fmt.Printf("An error has occurred while trying to classify an image with name: %v; error: %v \n", r.fileName, err)
 		}
 	}()
