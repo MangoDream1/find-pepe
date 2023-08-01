@@ -1,0 +1,17 @@
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: find-pepe
+build:
+  artifacts:
+    - image: scraper
+      context: services/scraper-vision
+      docker:
+        dockerfile: Dockerfile
+    - image: scraper-vision
+      context: services/scraper
+      docker:
+        dockerfile: Dockerfile
+manifests:
+  rawYaml:
+    - k8s/scraper/cronjob.yaml

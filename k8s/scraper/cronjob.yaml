@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scraper-cronjob
+  labels:
+    app: scraper
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    metadata:
+      labels:
+        app: scraper
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: scraper
+            image: scraper:latest
+            resources:
+              limits:
+                memory: 512Mi
+                cpu: 200m
+          - name: scraper-vision
+            image: scraper-vision:latest
+            ports:
+            - containerPort: 80
+            resources:
+              limits:
+                memory: 512Mi
+                cpu: 200m
