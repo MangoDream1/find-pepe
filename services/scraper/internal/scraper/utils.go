@@ -15,7 +15,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+const ErrorDirectory = "data/error"
 
 func hash(s string) string {
 	sha1Bytes := sha1.Sum([]byte(s))
@@ -141,7 +144,16 @@ func cleanUpUrl(url string) string {
 func getURL(fileName string, url string) (response *http.Response, success bool, canRetry bool) {
 	fmt.Printf("Fetching %v\n", url)
 
-	response, err := http.Get(url)
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", url, nil)
+
+	req.Header.Add("User-Agent", "PostmanRuntime/7.29.3")
+	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	req.Header.Add("Accept-Language", "en-US,en;q=0.5")
+	req.Header.Add("Connection", "keep-alive")
+
+	response, err := client.Do(req)
+
 	canRetry = false
 	success = false
 
@@ -170,6 +182,10 @@ func getURL(fileName string, url string) (response *http.Response, success bool,
 	}
 
 	if response.StatusCode != 200 {
+		data, err := ioutil.ReadAll(response.Body)
+		utils.Check(err)
+
+		writeFile(ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, url, time.Now().UTC(), ".html"), data)
 		panic(fmt.Sprintf("Failed to GET %v; non-OK response: %v", url, response.StatusCode))
 	}
 
