@@ -15,7 +15,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+const ErrorDirectory = "data/error"
 
 func hash(s string) string {
 	sha1Bytes := sha1.Sum([]byte(s))
@@ -170,6 +173,10 @@ func getURL(fileName string, url string) (response *http.Response, success bool,
 	}
 
 	if response.StatusCode != 200 {
+		data, err := ioutil.ReadAll(response.Body)
+		utils.Check(err)
+
+		writeFile(ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, url, time.Now().UTC(), ".html"), data)
 		panic(fmt.Sprintf("Failed to GET %v; non-OK response: %v", url, response.StatusCode))
 	}
 

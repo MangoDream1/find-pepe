@@ -62,8 +62,6 @@ func (s *HttpScraper) Start(startHref string) *HttpScraper {
 			data, err := ioutil.ReadAll(response.Body)
 			utils.Check(err)
 			s.requests <- httpRequest{id: requestId, data: data, href: startHref}
-		} else {
-			panic(fmt.Sprintf("Failed to retrive startHref %v", startHref))
 		}
 	}()
 
