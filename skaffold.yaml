@@ -5,13 +5,15 @@ metadata:
 build:
   artifacts:
     - image: scraper
-      context: services/scraper-vision
+      context: services/scraper
       docker:
         dockerfile: Dockerfile
-    - image: scraper-vision
-      context: services/scraper
+    - image: vision
+      context: services/vision
       docker:
         dockerfile: Dockerfile
 manifests:
   rawYaml:
     - k8s/scraper/cronjob.yaml
+    - k8s/vision/deployment.yaml
+    - k8s/vision/service.yaml

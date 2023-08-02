@@ -21,11 +21,3 @@ spec:
               limits:
                 memory: 512Mi
                 cpu: 200m
-          - name: scraper-vision
-            image: scraper-vision:latest
-            ports:
-            - containerPort: 80
-            resources:
-              limits:
-                memory: 512Mi
-                cpu: 200m
