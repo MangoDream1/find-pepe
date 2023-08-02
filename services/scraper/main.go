@@ -1,6 +1,8 @@
 package main
 
-import "go-find-pepe/internal/scraper"
+import (
+	"go-find-pepe/internal/scraper"
+)
 
 func main() {
 	var allowedHrefSubstrings = []string{"4channel.org"}

@@ -21,3 +21,6 @@ spec:
               limits:
                 memory: 512Mi
                 cpu: 200m
+            env:
+            - name: VISION_API_URL
+              value: http://vision:5000

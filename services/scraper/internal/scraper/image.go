@@ -21,7 +21,6 @@ const NonPepeDir = ImageDir + "/non-pepe"
 const PepeThreshold = 0.9
 const MaybeThreshold = 0.3
 
-const VisionApiUrl = "http://localhost:5000"
 const VisionImageKey = "file"
 
 type ImageScraper struct {
@@ -30,6 +29,7 @@ type ImageScraper struct {
 	imageReaders      chan *io.Reader
 	classifiedImages  chan classifiedImage
 	allowedImageTypes []string
+	visionApiUrl      string
 }
 
 type imageRequest struct {
@@ -47,13 +47,14 @@ type visionResponse struct {
 	Score float32 `json:"score"`
 }
 
-func newImageScraper(allowedImageTypes []string) *ImageScraper {
+func newImageScraper(visionApiUrl string, allowedImageTypes []string) *ImageScraper {
 	return &ImageScraper{
 		hrefs:             make(chan string),
 		requests:          make(chan imageRequest),
 		imageReaders:      make(chan *io.Reader),
 		classifiedImages:  make(chan classifiedImage),
 		allowedImageTypes: allowedImageTypes,
+		visionApiUrl:      visionApiUrl,
 	}
 }
 
@@ -130,11 +131,11 @@ func (s *ImageScraper) classifyImage(r imageRequest) *ImageScraper {
 	b, w := createSingleFileMultiPart(VisionImageKey, r.fileName, doc)
 	ct := w.FormDataContentType()
 
-	res, err := http.Post(VisionApiUrl, ct, b)
+	res, err := http.Post(s.visionApiUrl, ct, b)
 	utils.Check(err)
 
 	if res.StatusCode != 200 {
-		panic(fmt.Sprintf("Unsuccessful %v POST with code %v", VisionApiUrl, res.Status))
+		panic(fmt.Sprintf("Unsuccessful %v POST with code %v", s.visionApiUrl, res.Status))
 	}
 
 	data, err := ioutil.ReadAll(res.Body)

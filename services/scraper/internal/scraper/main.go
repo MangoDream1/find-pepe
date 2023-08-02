@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"io"
+	"os"
 )
 
 type Scraper struct {
@@ -13,8 +14,13 @@ type Scraper struct {
 func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, allowedImageTypes []string) *Scraper {
 	httpReaders := make(chan io.Reader)
 
+	visionApiUrl := os.Getenv("VISION_API_URL")
+	if visionApiUrl == "" {
+		panic("VISION_API_URL unset")
+	}
+
 	httpScraper := newHttpScraper(httpReaders, allowedHrefSubstrings, requiredHrefSubstrings)
-	imageScraper := newImageScraper(allowedImageTypes)
+	imageScraper := newImageScraper(visionApiUrl, allowedImageTypes)
 
 	return &Scraper{
 		httpReaders:  httpReaders,
