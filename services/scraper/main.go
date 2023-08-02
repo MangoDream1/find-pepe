@@ -11,5 +11,5 @@ func main() {
 	scraper := scraper.NewScraper(allowedHrefSubstrings, requiredHrefSubstrings, allowedImageTypes)
 	// go scraper.ReadDownloadedIds()
 
-	scraper.Start("https://www.4chan.org/")
+	scraper.Start("https://boards.4channel.org/g/")
 }
