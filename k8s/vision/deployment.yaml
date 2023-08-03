@@ -17,6 +17,10 @@ spec:
     spec:
       containers:
       - image: vision:latest
+        ports:
+        - name: http
+          containerPort: 5000
+          protocol: TCP
         name: vision
         resources:
           limits:
