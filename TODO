@@ -1,4 +1,3 @@
-- figure out why fetches no longer work
 - find out why it stops; probably does not find all the hrefs or hrefs are not added correctly
 - graceful exit after all hrefs are successfully added and images downloaded
 - probably store model not just weights and load model only without building layers
