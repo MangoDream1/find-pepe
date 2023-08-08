@@ -24,3 +24,46 @@ spec:
             env:
             - name: VISION_API_URL
               value: http://vision:5000
+            volumeMounts:
+            - name: volume
+              mountPath: /app/data/
+          volumes:
+          - name: volume
+            persistentVolumeClaim:
+              claimName: pepe-pvc
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   labels:
+#     app: scraper-deployment
+#   name: scraper
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: scraper
+#   strategy: {}
+#   template:
+#     metadata:
+#       labels:
+#         app: scraper
+#     spec:
+#       containers:
+#       - name: scraper
+#         image: scraper:latest
+#         resources:
+#           limits:
+#             memory: 512Mi
+#             cpu: 200m
+#         env:
+#         - name: VISION_API_URL
+#           value: http://vision:5000
+#         volumeMounts:
+#         - name: volume
+#           mountPath: /app/data/
+#       volumes:
+#       - name: volume
+#         persistentVolumeClaim:
+#           claimName: pepe-pvc
+# status: {}
