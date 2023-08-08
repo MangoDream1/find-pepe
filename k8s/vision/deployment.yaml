@@ -18,7 +18,7 @@ spec:
       containers:
       - image: vision:latest
         ports:
-        - name: http
+        - name: http-vision
           containerPort: 5000
           protocol: TCP
         name: vision

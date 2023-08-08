@@ -4,9 +4,9 @@ metadata:
   name: vision
 spec:
   selector:
-    matchLabels: vision
+    app: vision
   ports:
-    - name: http
+    - name: http-vision-main
       protocol: TCP
       port: 5000
-      targetPort: 5000
+      targetPort: http-vision
