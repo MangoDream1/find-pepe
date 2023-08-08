@@ -38,7 +38,7 @@ type imageRequest struct {
 }
 
 type classifiedImage struct {
-	propability float32
+	probability float32
 	fileName    string
 	image       []byte
 }
@@ -145,7 +145,7 @@ func (s *ImageScraper) classifyImage(r imageRequest) *ImageScraper {
 	err = json.Unmarshal(data, &vRes)
 	utils.Check(err)
 
-	s.classifiedImages <- classifiedImage{propability: vRes.Score, image: doc, fileName: r.fileName}
+	s.classifiedImages <- classifiedImage{probability: vRes.Score, image: doc, fileName: r.fileName}
 	return s
 }
 
@@ -156,9 +156,9 @@ func (s *ImageScraper) storeImage(img classifiedImage) *ImageScraper {
 		}
 	}()
 
-	if img.propability >= PepeThreshold {
+	if img.probability >= PepeThreshold {
 		writeFile(PepeDir, img.fileName, img.image)
-	} else if img.propability >= MaybeThreshold {
+	} else if img.probability >= MaybeThreshold {
 		writeFile(MaybeDir, img.fileName, img.image)
 	} else {
 		writeFile(NonPepeDir, img.fileName, img.image)
