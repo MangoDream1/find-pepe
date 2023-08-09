@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,7 +30,6 @@ const VisionImageKey = "file"
 
 type ImageScraper struct {
 	hrefs             chan string
-	requests          chan imageRequest
 	imageReaders      chan *io.Reader
 	toBeClassified    chan string
 	allowedImageTypes []string
@@ -48,7 +48,6 @@ type visionResponse struct {
 func newImageScraper(visionApiUrl string, allowedImageTypes []string) *ImageScraper {
 	return &ImageScraper{
 		hrefs:             make(chan string),
-		requests:          make(chan imageRequest),
 		imageReaders:      make(chan *io.Reader),
 		toBeClassified:    make(chan string),
 		allowedImageTypes: allowedImageTypes,
@@ -62,12 +61,18 @@ func (s *ImageScraper) Start() *ImageScraper {
 
 	for {
 		select {
-		case request := <-s.requests:
-			go s.storeImageRequest(request, s.toBeClassified)
 		case path := <-s.toBeClassified:
 			go s.classifyImageByPath(path)
 		case href := <-s.hrefs:
-			go s.getImage(href, s.requests)
+			request, err := s.getImage(href)
+			if err != nil {
+				if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
+					continue
+				}
+				panic(err)
+			}
+
+			go s.storeImageRequest(request, s.toBeClassified)
 		}
 	}
 }
@@ -90,7 +95,7 @@ func (s *ImageScraper) classifyImageByPath(path string) {
 	deleteFile(path)
 }
 
-func (s *ImageScraper) storeImageRequest(request imageRequest, output chan string) string {
+func (s *ImageScraper) storeImageRequest(request *imageRequest, output chan string) string {
 	blob, err := ioutil.ReadAll(request.response.Body)
 	utils.Check(err)
 
@@ -100,27 +105,29 @@ func (s *ImageScraper) storeImageRequest(request imageRequest, output chan strin
 	return path
 }
 
-func (s *ImageScraper) getImage(href string, output chan imageRequest) {
+func (s *ImageScraper) getImage(href string) (*imageRequest, error) {
 	cleanedHref := cleanUpUrl(href)
 
 	correctRequiredSubstrings := stringShouldContainOneFilter(cleanedHref, s.allowedImageTypes)
 	if !correctRequiredSubstrings {
-		return
+		return nil, errors.New("image type not allowed")
 	}
 
 	fileName := s.transformUrlIntoFilename(cleanedHref)
 	if s.doesImageExist(fileName) {
-		return
+		return nil, errors.New("image already exists")
 	}
 
 	response, success, canRetry := getURL(fileName, cleanedHref)
 
 	if success {
-		output <- imageRequest{fileName: fileName, response: response}
+		return &imageRequest{fileName: fileName, response: response}, nil
 	} else if canRetry {
 		fmt.Printf("Retrying url: %v\n", href)
-		go s.getImage(href, output)
+		return s.getImage(href)
 	}
+
+	return nil, errors.New("unsuccessful response")
 }
 
 func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
