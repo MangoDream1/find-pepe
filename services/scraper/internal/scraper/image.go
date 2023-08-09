@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"go-find-pepe/internal/utils"
@@ -17,6 +18,9 @@ const ImageDir = "data/image"
 const MaybeDir = ImageDir + "/maybe"
 const PepeDir = ImageDir + "/pepe"
 const NonPepeDir = ImageDir + "/non-pepe"
+const UnclassifiedDir = ImageDir + "/unclassified"
+
+var FileDirectories = [4]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir}
 
 const PepeThreshold = 0.9
 const MaybeThreshold = 0.3
@@ -27,7 +31,7 @@ type ImageScraper struct {
 	hrefs             chan string
 	requests          chan imageRequest
 	imageReaders      chan *io.Reader
-	classifiedImages  chan classifiedImage
+	toBeClassified    chan string
 	allowedImageTypes []string
 	visionApiUrl      string
 }
@@ -35,12 +39,6 @@ type ImageScraper struct {
 type imageRequest struct {
 	fileName string
 	response *http.Response
-}
-
-type classifiedImage struct {
-	probability float32
-	fileName    string
-	image       []byte
 }
 
 type visionResponse struct {
@@ -52,49 +50,77 @@ func newImageScraper(visionApiUrl string, allowedImageTypes []string) *ImageScra
 		hrefs:             make(chan string),
 		requests:          make(chan imageRequest),
 		imageReaders:      make(chan *io.Reader),
-		classifiedImages:  make(chan classifiedImage),
+		toBeClassified:    make(chan string),
 		allowedImageTypes: allowedImageTypes,
 		visionApiUrl:      visionApiUrl,
 	}
 }
 
 func (s *ImageScraper) Start() *ImageScraper {
+	dirPath := filepath.Join(getProjectPath(), UnclassifiedDir)
+	go readNestedDir(dirPath, s.toBeClassified)
+
 	for {
 		select {
-		case classifiedImage := <-s.classifiedImages:
-			go s.storeImage(classifiedImage)
 		case request := <-s.requests:
-			go s.classifyImage(request)
+			go s.storeImageRequest(request, s.toBeClassified)
+		case path := <-s.toBeClassified:
+			go s.classifyImageByPath(path)
 		case href := <-s.hrefs:
-			go s.getImage(href)
+			go s.getImage(href, s.requests)
 		}
 	}
 }
 
-// FIXME: nasty return if it does already exist
-func (s *ImageScraper) getImage(href string) *ImageScraper {
+func (s *ImageScraper) classifyImageByPath(path string) {
+	blob := readFile(path)
+	probability := s.retrieveImageProbability(path, blob)
+
+	if probability >= PepeThreshold {
+		newPath := replaceDir(path, UnclassifiedDir, PepeDir)
+		writeFile(newPath, blob)
+	} else if probability >= MaybeThreshold {
+		newPath := replaceDir(path, UnclassifiedDir, MaybeDir)
+		writeFile(newPath, blob)
+	} else {
+		newPath := replaceDir(path, UnclassifiedDir, NonPepeDir)
+		writeFile(newPath, blob)
+	}
+
+	deleteFile(path)
+}
+
+func (s *ImageScraper) storeImageRequest(request imageRequest, output chan string) string {
+	blob, err := ioutil.ReadAll(request.response.Body)
+	utils.Check(err)
+
+	path := createPath(UnclassifiedDir, request.fileName)
+	writeFile(path, blob)
+	output <- path
+	return path
+}
+
+func (s *ImageScraper) getImage(href string, output chan imageRequest) {
 	cleanedHref := cleanUpUrl(href)
 
 	correctRequiredSubstrings := stringShouldContainOneFilter(cleanedHref, s.allowedImageTypes)
 	if !correctRequiredSubstrings {
-		return s
+		return
 	}
 
 	fileName := s.transformUrlIntoFilename(cleanedHref)
 	if s.doesImageExist(fileName) {
-		return s
+		return
 	}
 
 	response, success, canRetry := getURL(fileName, cleanedHref)
 
 	if success {
-		s.requests <- imageRequest{fileName: fileName, response: response}
+		output <- imageRequest{fileName: fileName, response: response}
 	} else if canRetry {
 		fmt.Printf("Retrying url: %v\n", href)
-		s.hrefs <- href
+		go s.getImage(href, output)
 	}
-
-	return s
 }
 
 func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
@@ -113,22 +139,15 @@ func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
 	return s
 }
 
-func (s *ImageScraper) classifyImage(r imageRequest) *ImageScraper {
+func (s *ImageScraper) retrieveImageProbability(fileName string, blob []byte) float32 {
 	defer func() {
 		if err := recover(); err != nil {
-			if strings.Contains(err.(string), "stream: error:") {
-				fmt.Println("Received stream error creating MultiPart; retrying...")
-				s.requests <- r
-			}
-
-			fmt.Printf("An error has occurred while trying to classify an image with name: %v; error: %v \n", r.fileName, err)
+			fmt.Printf("An error has occurred while trying to classify an image with name: %v \n", fileName)
+			panic(err)
 		}
 	}()
 
-	doc, err := ioutil.ReadAll(r.response.Body)
-	utils.Check(err)
-
-	b, w := createSingleFileMultiPart(VisionImageKey, r.fileName, doc)
+	b, w := createSingleFileMultiPart(VisionImageKey, fileName, blob)
 	ct := w.FormDataContentType()
 
 	res, err := http.Post(s.visionApiUrl, ct, b)
@@ -145,30 +164,17 @@ func (s *ImageScraper) classifyImage(r imageRequest) *ImageScraper {
 	err = json.Unmarshal(data, &vRes)
 	utils.Check(err)
 
-	s.classifiedImages <- classifiedImage{probability: vRes.Score, image: doc, fileName: r.fileName}
-	return s
-}
-
-func (s *ImageScraper) storeImage(img classifiedImage) *ImageScraper {
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Printf("An error has occurred while trying to store an image with name: %v; error: %v \n", img.fileName, err)
-		}
-	}()
-
-	if img.probability >= PepeThreshold {
-		writeFile(PepeDir, img.fileName, img.image)
-	} else if img.probability >= MaybeThreshold {
-		writeFile(MaybeDir, img.fileName, img.image)
-	} else {
-		writeFile(NonPepeDir, img.fileName, img.image)
-	}
-
-	return s
+	return vRes.Score
 }
 
 func (s *ImageScraper) doesImageExist(fileName string) bool {
-	return doesFileExist(PepeDir, fileName) || doesFileExist(NonPepeDir, fileName) || doesFileExist(MaybeDir, fileName)
+	for _, dir := range FileDirectories {
+		if !doesFileExist(dir, fileName) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *ImageScraper) transformUrlIntoFilename(url string) string {

@@ -149,7 +149,8 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 
 func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
 	fileName := s.createFileName(r.href)
-	writeFile(httpDir, fileName, r.data)
+	path := createPath(httpDir, fileName)
+	writeFile(path, r.data)
 	return s
 }
 

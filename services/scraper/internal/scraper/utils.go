@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"go-find-pepe/internal/utils"
 	"io"
-	"io/fs"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -25,8 +24,14 @@ func hash(s string) string {
 	return hex.EncodeToString(sha1Bytes[:])
 }
 
-func writeFile(fileDir string, fileName string, b []byte) {
-	path := createPath(fileDir, fileName)
+func writeFile(path string, b []byte) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("An error has occurred while trying to store an file with name: %v \n", path)
+			panic(err)
+		}
+	}()
+
 	fmt.Printf("Writing file to %v\n", path)
 
 	dir := filepath.Dir(path)
@@ -42,13 +47,17 @@ func writeFile(fileDir string, fileName string, b []byte) {
 	fmt.Printf("Successfully written file to %v\n", path)
 }
 
-func readFile(fileDir string, fileName string) []byte {
-	path := createPath(fileDir, fileName)
-
+func readFile(path string) []byte {
 	buffer, err := ioutil.ReadFile(path)
 	utils.Check(err)
 
 	return buffer
+}
+
+func deleteFile(path string) {
+	err := os.Remove(path)
+	utils.Check(err)
+	fmt.Printf("Successfully deleted file %v\n", path)
 }
 
 func doesFileExist(fileDir string, fileName string) bool {
@@ -61,30 +70,46 @@ func doesFileExist(fileDir string, fileName string) bool {
 	return true
 }
 
-func createReader(fileDir string, fileName string) *io.Reader {
-	path := createPath(fileDir, fileName)
+// readNestedDir finds all nested files within the original dirPath and puts the path into output
+func readNestedDir(dirPath string, output chan string) {
+	// dirPath does not exists, return early
+	if _, err := os.Stat(dirPath); err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+	}
 
-	f, err := os.Open(path)
+	fs, err := ioutil.ReadDir(dirPath)
 	utils.Check(err)
 
-	var r io.Reader
-	r = f
-
-	return &r
-}
-
-func readDir(dir string) []fs.FileInfo {
-	dir = filepath.Join(getProjectPath(), dir)
-	err := os.MkdirAll(dir, os.ModePerm)
-	utils.Check(err)
-
-	fileInfos, err := ioutil.ReadDir(dir)
-	utils.Check(err)
-	return fileInfos
+	for _, f := range fs {
+		path := createPath(dirPath, f.Name())
+		if f.IsDir() {
+			go readNestedDir(path, output)
+		} else {
+			output <- path
+		}
+	}
 }
 
 func createPath(fileDir string, fileName string) string {
 	return filepath.Join(getProjectPath(), fileDir, fileName)
+}
+
+func replaceDir(path string, oldDir string, newDir string) string {
+	oldPath := filepath.SplitList(path)
+	newPath := make([]string, len(oldPath))
+
+	for i, section := range oldPath {
+		if section == oldDir {
+			newPath[i] = newDir
+			continue
+		}
+
+		newPath[i] = section
+	}
+
+	return filepath.Join(newPath...)
 }
 
 func getProjectPath() string {
@@ -185,7 +210,8 @@ func getURL(fileName string, url string) (response *http.Response, success bool,
 		data, err := ioutil.ReadAll(response.Body)
 		utils.Check(err)
 
-		writeFile(ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, url, time.Now().UTC(), ".html"), data)
+		path := createPath(ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, url, time.Now().UTC(), ".html"))
+		writeFile(path, data)
 		panic(fmt.Sprintf("Failed to GET %v; non-OK response: %v", url, response.StatusCode))
 	}
 
