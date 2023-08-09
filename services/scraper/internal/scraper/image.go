@@ -72,7 +72,7 @@ func (s *ImageScraper) Start() *ImageScraper {
 				panic(err)
 			}
 
-			go s.storeImageRequest(request, s.toBeClassified)
+			s.storeImageRequest(request, s.toBeClassified)
 		}
 	}
 }
