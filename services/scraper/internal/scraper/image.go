@@ -176,7 +176,8 @@ func (s *ImageScraper) retrieveImageProbability(fileName string, blob []byte) fl
 
 func (s *ImageScraper) doesImageExist(fileName string) bool {
 	for _, dir := range FileDirectories {
-		if !doesFileExist(dir, fileName) {
+		path := createPath(dir, fileName)
+		if !doesFileExist(path) {
 			return false
 		}
 	}

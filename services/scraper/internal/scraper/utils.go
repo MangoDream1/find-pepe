@@ -55,13 +55,16 @@ func readFile(path string) []byte {
 }
 
 func deleteFile(path string) {
+	if !doesFileExist(path) {
+		return
+	}
+
 	err := os.Remove(path)
 	utils.Check(err)
 	fmt.Printf("Successfully deleted file %v\n", path)
 }
 
-func doesFileExist(fileDir string, fileName string) bool {
-	path := createPath(fileDir, fileName)
+func doesFileExist(path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			return false
@@ -73,10 +76,8 @@ func doesFileExist(fileDir string, fileName string) bool {
 // readNestedDir finds all nested files within the original dirPath and puts the path into output
 func readNestedDir(dirPath string, output chan string) {
 	// dirPath does not exists, return early
-	if _, err := os.Stat(dirPath); err != nil {
-		if os.IsNotExist(err) {
-			return
-		}
+	if !doesFileExist(dirPath) {
+		return
 	}
 
 	fs, err := ioutil.ReadDir(dirPath)

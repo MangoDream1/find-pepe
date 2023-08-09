@@ -164,7 +164,8 @@ func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
 
 func (s *HttpScraper) doesHtmlExist(href string) bool {
 	fileName := s.createFileName(href)
-	return doesFileExist(httpDir, fileName)
+	path := createPath(httpDir, fileName)
+	return doesFileExist(path)
 }
 
 func (s *HttpScraper) createFileName(href string) (fileName string) {
