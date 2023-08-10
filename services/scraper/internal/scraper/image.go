@@ -34,6 +34,7 @@ type ImageScraper struct {
 	allowedImageTypes []string
 	visionApiUrl      string
 	wg                *sync.WaitGroup
+	done              *sync.Mutex
 }
 
 type imageRequest struct {
@@ -45,16 +46,7 @@ type visionResponse struct {
 	Score float32 `json:"score"`
 }
 
-func newImageScraper(httpReaders chan io.Reader, visionApiUrl string, allowedImageTypes []string) *ImageScraper {
-	return &ImageScraper{
-		httpReaders:       httpReaders,
-		allowedImageTypes: allowedImageTypes,
-		visionApiUrl:      visionApiUrl,
-		wg:                &sync.WaitGroup{},
-	}
-}
-
-func (s *ImageScraper) Start(mutex *sync.Mutex) {
+func (s *ImageScraper) Start() {
 	hrefs := make(chan string)
 	toBeClassified := make(chan string)
 
@@ -71,11 +63,11 @@ func (s *ImageScraper) Start(mutex *sync.Mutex) {
 	})
 
 	go func() {
-		mutex.Lock()
-		s.wg.Wait()
+		s.done.Lock()
 		done <- true
 	}()
 
+	s.wg.Done()
 	for {
 		select {
 		case <-done:

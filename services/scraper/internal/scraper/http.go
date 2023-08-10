@@ -22,6 +22,7 @@ type HttpScraper struct {
 	allowedHrefSubstrings  []string
 	requiredHrefSubstrings []string
 	wg                     *sync.WaitGroup
+	done                   *sync.Mutex
 }
 
 type httpRequest struct {
@@ -30,18 +31,7 @@ type httpRequest struct {
 	data []byte
 }
 
-func newHttpScraper(httpReaders chan io.Reader, allowedHrefSubstrings []string, requiredHrefSubstrings []string) *HttpScraper {
-	return &HttpScraper{
-		httpReaders:            httpReaders,
-		allowedHrefSubstrings:  allowedHrefSubstrings,
-		requiredHrefSubstrings: requiredHrefSubstrings,
-		wg:                     &sync.WaitGroup{},
-	}
-}
-
-func (s *HttpScraper) Start(mutex *sync.Mutex, startHref string) {
-	mutex.Lock()
-
+func (s *HttpScraper) Start(startHref string) {
 	hrefs := make(chan string)
 	requests := make(chan *httpRequest)
 
@@ -68,11 +58,11 @@ func (s *HttpScraper) Start(mutex *sync.Mutex, startHref string) {
 	)
 
 	go func() {
-		s.wg.Wait()
+		s.done.Lock()
 		done <- true
-		mutex.Unlock()
 	}()
 
+	s.wg.Done()
 	for {
 		select {
 		case <-done:
@@ -86,7 +76,7 @@ func (s *HttpScraper) Start(mutex *sync.Mutex, startHref string) {
 				})
 
 				s.wg.Add(1)
-				s.httpReaders <- bytes.NewBuffer(request.data)
+				s.httpReaders <- bytes.NewBuffer(request.data) // FIXME: hier zit het probleem
 			}()
 
 		case href := <-hrefs:

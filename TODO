@@ -1,5 +1,4 @@
-- find out why it stops; probably does not find all the hrefs or hrefs are not added correctly
-- graceful exit after all hrefs are successfully added and images downloaded
+- on start up read all previous htmls
 - probably store model not just weights and load model only without building layers
 - add frontend
 - prevent cronjobs from overlapping
