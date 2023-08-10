@@ -33,7 +33,7 @@ type ImageScraper struct {
 	httpReaders       chan io.Reader
 	allowedImageTypes []string
 	visionApiUrl      string
-	wg                sync.WaitGroup
+	wg                *sync.WaitGroup
 }
 
 type imageRequest struct {
@@ -50,7 +50,7 @@ func newImageScraper(httpReaders chan io.Reader, visionApiUrl string, allowedIma
 		httpReaders:       httpReaders,
 		allowedImageTypes: allowedImageTypes,
 		visionApiUrl:      visionApiUrl,
-		wg:                sync.WaitGroup{},
+		wg:                &sync.WaitGroup{},
 	}
 }
 
@@ -59,7 +59,7 @@ func (s *ImageScraper) Start(mutex *sync.Mutex) {
 	toBeClassified := make(chan string)
 
 	done := make(chan bool)
-	wgU := utils.WaitGroupUtil{WaitGroup: &s.wg}
+	wgU := utils.WaitGroupUtil{WaitGroup: s.wg}
 
 	dirPath := filepath.Join(getProjectPath(), UnclassifiedDir)
 

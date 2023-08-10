@@ -21,7 +21,7 @@ type HttpScraper struct {
 	httpReaders            chan io.Reader
 	allowedHrefSubstrings  []string
 	requiredHrefSubstrings []string
-	wg                     sync.WaitGroup
+	wg                     *sync.WaitGroup
 }
 
 type httpRequest struct {
@@ -35,7 +35,7 @@ func newHttpScraper(httpReaders chan io.Reader, allowedHrefSubstrings []string, 
 		httpReaders:            httpReaders,
 		allowedHrefSubstrings:  allowedHrefSubstrings,
 		requiredHrefSubstrings: requiredHrefSubstrings,
-		wg:                     sync.WaitGroup{},
+		wg:                     &sync.WaitGroup{},
 	}
 }
 
@@ -46,7 +46,7 @@ func (s *HttpScraper) Start(mutex *sync.Mutex, startHref string) {
 	requests := make(chan *httpRequest)
 
 	done := make(chan bool)
-	wgU := utils.WaitGroupUtil{WaitGroup: &s.wg}
+	wgU := utils.WaitGroupUtil{WaitGroup: s.wg}
 
 	wgU.Wrapper(
 		func() {
