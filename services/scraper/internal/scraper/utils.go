@@ -8,6 +8,7 @@ import (
 	"go-find-pepe/internal/utils"
 	"io"
 	"io/ioutil"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -17,6 +18,8 @@ import (
 	"sync"
 	"time"
 )
+
+const MAX_ATTEMPT = 5
 
 const ErrorDirectory = "data/error"
 
@@ -81,7 +84,7 @@ func doesFileExist(path string) bool {
 }
 
 // readNestedDir finds all nested files within the original dirPath and puts the path into output
-func readNestedDir(dirPath string, output chan string) {
+func readNestedDir(dirPath string, output func(string)) {
 	var wg sync.WaitGroup
 
 	var inner func(dirPath string)
@@ -97,7 +100,7 @@ func readNestedDir(dirPath string, output chan string) {
 				wg.Add(1)
 				go inner(path)
 			} else {
-				output <- path
+				output(path)
 			}
 		}
 	}
@@ -125,12 +128,6 @@ func getProjectPath() string {
 
 func addExtension(id string, extension string) string {
 	return fmt.Sprintf("%s.%s", id, extension)
-}
-
-func removeExtension(filename string) string {
-	extension := filepath.Ext(filename)
-	n := strings.LastIndex(filename, extension)
-	return filename[:n]
 }
 
 func stringShouldContainOneFilter(s string, filters []string) bool {
@@ -171,7 +168,25 @@ func cleanUpUrl(url string) string {
 	return url
 }
 
-func getURL(fileName string, url string) (response *http.Response, success bool, canRetry bool) {
+func getURL(url string, nAttempt uint8) (response *http.Response, success bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("An error has occurred while trying to retrieve href: %v\n", url)
+			panic(err)
+		}
+	}()
+
+	if nAttempt >= MAX_ATTEMPT {
+		panic(fmt.Errorf("failed to getURL after MAX_ATTEMPT=%v", MAX_ATTEMPT))
+	}
+
+	retry := func() (response *http.Response, success bool) {
+		backoff := calculateExponentialBackoffInSec(nAttempt)
+		fmt.Printf("Retrying url: %v after %v\n", url, backoff)
+		time.Sleep(time.Second * time.Duration(nAttempt))
+		return getURL(url, nAttempt+1)
+	}
+
 	fmt.Printf("Fetching %v\n", url)
 
 	client := &http.Client{}
@@ -184,16 +199,13 @@ func getURL(fileName string, url string) (response *http.Response, success bool,
 
 	response, err := client.Do(req)
 
-	canRetry = false
 	success = false
-
 	if err != nil {
 		msg := err.Error()
 
 		if stringShouldContainOneFilter(msg, []string{"timeout", "connection reset"}) {
 			fmt.Printf("Failed to GET %v; timeout\n", url)
-			canRetry = true
-			return
+			return retry()
 		}
 
 		fmt.Printf("Failed to GET %v; unknown error %v\n", url, msg)
@@ -202,8 +214,7 @@ func getURL(fileName string, url string) (response *http.Response, success bool,
 
 	if response.StatusCode == 503 {
 		fmt.Printf("Failed to GET %v; 503 response\n", url)
-		canRetry = true
-		return
+		return retry()
 	}
 
 	if response.StatusCode == 404 {
@@ -240,4 +251,8 @@ func createSingleFileMultiPart(key string, fileName string, file []byte) (*bytes
 	utils.Check(err)
 
 	return &b, writer
+}
+
+func calculateExponentialBackoffInSec(a uint8) float64 {
+	return math.Pow(2, float64(a))
 }

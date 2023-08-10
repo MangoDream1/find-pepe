@@ -31,11 +31,9 @@ const VisionImageKey = "file"
 
 type ImageScraper struct {
 	httpReaders       chan io.Reader
-	hrefs             chan string
-	imageReaders      chan *io.Reader
-	toBeClassified    chan string
 	allowedImageTypes []string
 	visionApiUrl      string
+	wg                sync.WaitGroup
 }
 
 type imageRequest struct {
@@ -50,58 +48,77 @@ type visionResponse struct {
 func newImageScraper(httpReaders chan io.Reader, visionApiUrl string, allowedImageTypes []string) *ImageScraper {
 	return &ImageScraper{
 		httpReaders:       httpReaders,
-		hrefs:             make(chan string),
-		imageReaders:      make(chan *io.Reader),
-		toBeClassified:    make(chan string),
 		allowedImageTypes: allowedImageTypes,
 		visionApiUrl:      visionApiUrl,
+		wg:                sync.WaitGroup{},
 	}
 }
 
-func (s *ImageScraper) Start() {
+func (s *ImageScraper) Start(mutex *sync.Mutex) {
+	hrefs := make(chan string)
+	toBeClassified := make(chan string)
+
 	done := make(chan bool)
-	var wg sync.WaitGroup
-	wgU := utils.WaitGroupUtil{WaitGroup: &wg}
+	wgU := utils.WaitGroupUtil{WaitGroup: &s.wg}
 
 	dirPath := filepath.Join(getProjectPath(), UnclassifiedDir)
 
 	wgU.Wrapper(func() {
-		readNestedDir(dirPath, s.toBeClassified)
+		readNestedDir(dirPath, func(path string) {
+			s.wg.Add(1)
+			toBeClassified <- path
+		})
 	})
 
 	go func() {
-		wg.Wait()
+		mutex.Lock()
+		s.wg.Wait()
 		done <- true
 	}()
 
 	for {
 		select {
 		case <-done:
+			fmt.Println("ImageScraper exited")
 			return
 		case reader := <-s.httpReaders:
 			wgU.Wrapper(func() {
-				s.findHref(reader)
+				defer s.wg.Done()
+				s.findHref(reader, hrefs)
 			})
-		case path := <-s.toBeClassified:
+		case path := <-toBeClassified:
 			wgU.Wrapper(func() {
+				defer s.wg.Done()
+				defer func() {
+					if err := recover(); err != nil {
+						if strings.Contains(err.(error).Error(), "no such file or directory") {
+							fmt.Printf("Image %v does not exist anymore; ignoring\n", path)
+							return
+						} else {
+							panic(err)
+						}
+					}
+				}()
+
 				s.classifyImageByPath(path)
-
 			})
-
-		case href := <-s.hrefs:
+		case href := <-hrefs:
 			wgU.Wrapper(func() {
+				defer s.wg.Done()
 				request, err := s.getImage(href)
 				if err != nil {
 					if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
+						return
+					} else if err.Error() == "unsuccessful response" {
+						fmt.Printf("Failed request %v; ignoring", href)
 						return
 					} else {
 						panic(err)
 					}
 				}
 
-				s.storeImageRequest(request, s.toBeClassified)
+				s.storeImageRequest(request, toBeClassified)
 			})
-
 		}
 	}
 }
@@ -123,11 +140,13 @@ func (s *ImageScraper) classifyImageByPath(path string) {
 }
 
 func (s *ImageScraper) storeImageRequest(request *imageRequest, output chan string) string {
+	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
+
 	blob, err := ioutil.ReadAll(request.response.Body)
 	utils.Check(err)
 
-	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
 	writeFile(path, blob)
+	s.wg.Add(1)
 	output <- path
 	return path
 }
@@ -145,19 +164,16 @@ func (s *ImageScraper) getImage(href string) (*imageRequest, error) {
 		return nil, errors.New("image already exists")
 	}
 
-	response, success, canRetry := getURL(fileName, cleanedHref)
+	response, success := getURL(cleanedHref, 1)
 
-	if success {
-		return &imageRequest{fileName: fileName, response: response}, nil
-	} else if canRetry {
-		fmt.Printf("Retrying url: %v\n", href)
-		return s.getImage(href)
+	if !success {
+		return nil, errors.New("unsuccessful response")
 	}
 
-	return nil, errors.New("unsuccessful response")
+	return &imageRequest{fileName: fileName, response: response}, nil
 }
 
-func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
+func (s *ImageScraper) findHref(reader io.Reader, output chan string) *ImageScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
@@ -166,7 +182,8 @@ func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
 		href, exists := selection.Attr("href")
 
 		if exists {
-			s.hrefs <- href
+			s.wg.Add(1)
+			output <- href
 		}
 	})
 

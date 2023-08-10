@@ -1,8 +1,10 @@
 package scraper
 
 import (
+	"go-find-pepe/internal/utils"
 	"io"
 	"os"
+	"sync"
 )
 
 type Scraper struct {
@@ -29,20 +31,19 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 	}
 }
 
-// TODO: refactor
-// func (s *Scraper) ReadDownloadedIds() *Scraper {
-// 	s.httpScraper.readDownloadedIds()
-// 	return s
-// }
-
 func (s *Scraper) Start(startHref string) *Scraper {
-	// done := make(chan int)
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
+	wgU := utils.WaitGroupUtil{WaitGroup: &wg}
 
-	// go s.httpScraper.Start(startHref)
-	s.imageScraper.Start()
+	wgU.Wrapper(func() {
+		s.httpScraper.Start(&mutex, startHref)
+	})
+	wgU.Wrapper(func() {
+		s.imageScraper.Start(&mutex)
+	})
 
-	// TODO: actually await here
-	// <-done
+	wg.Wait()
 
 	return s
 }

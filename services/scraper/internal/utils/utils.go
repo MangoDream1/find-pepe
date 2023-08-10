@@ -18,5 +18,4 @@ func (k *WaitGroupUtil) Wrapper(f func()) {
 		defer k.WaitGroup.Done()
 		f()
 	}()
-
 }
