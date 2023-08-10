@@ -107,20 +107,14 @@ func readNestedDir(dirPath string, output chan string) {
 	wg.Wait()
 }
 
-func replaceDir(path string, oldDir string, newDir string) string {
-	oldPath := filepath.SplitList(path)
-	newPath := make([]string, len(oldPath))
+func replaceDir(oldPath string, oldDir string, newDir string) string {
+	newPath := strings.Replace(oldPath, oldDir, newDir, 1)
 
-	for i, section := range oldPath {
-		if section == oldDir {
-			newPath[i] = newDir
-			continue
-		}
-
-		newPath[i] = section
+	if newPath == oldPath {
+		panic(fmt.Errorf("failed to replaceDir; oldDir %v not in oldPath %v", newDir, oldPath))
 	}
 
-	return filepath.Join(newPath...)
+	return newPath
 }
 
 func getProjectPath() string {

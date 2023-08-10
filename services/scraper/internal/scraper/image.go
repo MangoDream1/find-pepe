@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"go-find-pepe/internal/utils"
 
@@ -57,26 +58,50 @@ func newImageScraper(httpReaders chan io.Reader, visionApiUrl string, allowedIma
 	}
 }
 
-func (s *ImageScraper) Start() *ImageScraper {
+func (s *ImageScraper) Start() {
+	done := make(chan bool)
+	var wg sync.WaitGroup
+	wgU := utils.WaitGroupUtil{WaitGroup: &wg}
+
 	dirPath := filepath.Join(getProjectPath(), UnclassifiedDir)
-	go readNestedDir(dirPath, s.toBeClassified)
+
+	wgU.Wrapper(func() {
+		readNestedDir(dirPath, s.toBeClassified)
+	})
+
+	go func() {
+		wg.Wait()
+		done <- true
+	}()
 
 	for {
 		select {
+		case <-done:
+			return
 		case reader := <-s.httpReaders:
-			go s.findHref(reader)
+			wgU.Wrapper(func() {
+				s.findHref(reader)
+			})
 		case path := <-s.toBeClassified:
-			go s.classifyImageByPath(path)
-		case href := <-s.hrefs:
-			request, err := s.getImage(href)
-			if err != nil {
-				if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
-					continue
-				}
-				panic(err)
-			}
+			wgU.Wrapper(func() {
+				s.classifyImageByPath(path)
 
-			s.storeImageRequest(request, s.toBeClassified)
+			})
+
+		case href := <-s.hrefs:
+			wgU.Wrapper(func() {
+				request, err := s.getImage(href)
+				if err != nil {
+					if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
+						return
+					} else {
+						panic(err)
+					}
+				}
+
+				s.storeImageRequest(request, s.toBeClassified)
+			})
+
 		}
 	}
 }
@@ -168,11 +193,11 @@ func (s *ImageScraper) retrieveImageProbability(filePath string, blob []byte) fl
 	if res.StatusCode == 500 {
 		newPath := replaceDir(filePath, UnclassifiedDir, MaybeDir)
 		moveFile(filePath, newPath)
-		fmt.Printf("Unsuccessful %v POST with code 500; deleted the image %v\n", s.visionApiUrl, filePath)
+		fmt.Printf("Unsuccessful %v POST with code 500; moved the image %v\n", s.visionApiUrl, filePath)
 	}
 
 	if res.StatusCode != 200 {
-		panic(fmt.Sprintf("Unsuccessful %v POST with code %v", s.visionApiUrl, res.Status))
+		panic(fmt.Errorf("unsuccessful %v POST with code %v", s.visionApiUrl, res.Status))
 	}
 
 	data, err := ioutil.ReadAll(res.Body)

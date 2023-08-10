@@ -12,7 +12,7 @@ type Scraper struct {
 }
 
 func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, allowedImageTypes []string) *Scraper {
-	httpReaders := make(chan io.Reader)
+	httpReaders := make(chan io.Reader) // FIXME: both image and http use this same reader; should fan out to both; https://stackoverflow.com/questions/28527038/go-one-channel-with-multiple-listeners
 
 	visionApiUrl := os.Getenv("VISION_API_URL")
 	if visionApiUrl == "" {
@@ -36,13 +36,13 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 // }
 
 func (s *Scraper) Start(startHref string) *Scraper {
-	done := make(chan int)
+	// done := make(chan int)
 
-	go s.httpScraper.Start(startHref)
-	go s.imageScraper.Start()
+	// go s.httpScraper.Start(startHref)
+	s.imageScraper.Start()
 
 	// TODO: actually await here
-	<-done
+	// <-done
 
 	return s
 }
