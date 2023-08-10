@@ -1,0 +1,10 @@
+{
+  "/": {
+    "post": {
+      "score": 0
+    }
+  },
+  "/health": {
+    "get": "Hello world!"
+  }
+}

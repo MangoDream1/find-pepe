@@ -1,0 +1,14 @@
+{
+  "name": "mock-vision",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "mock-json-server api.json --port=5000"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "mock-json-server": "^1.3.6"
+  }
+}
