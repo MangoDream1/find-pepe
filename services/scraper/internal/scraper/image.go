@@ -150,19 +150,26 @@ func (s *ImageScraper) findHref(reader io.Reader) *ImageScraper {
 	return s
 }
 
-func (s *ImageScraper) retrieveImageProbability(fileName string, blob []byte) float32 {
+func (s *ImageScraper) retrieveImageProbability(filePath string, blob []byte) float32 {
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Printf("An error has occurred while trying to classify an image with name: %v \n", fileName)
+			fmt.Printf("An error has occurred while trying to classify an image with name: %v \n", filePath)
 			panic(err)
 		}
 	}()
 
-	b, w := createSingleFileMultiPart(VisionImageKey, fileName, blob)
+	b, w := createSingleFileMultiPart(VisionImageKey, filePath, blob)
 	ct := w.FormDataContentType()
 
+	// TODO: use utils.getURL instead
 	res, err := http.Post(s.visionApiUrl, ct, b)
 	utils.Check(err)
+
+	// assume that if 500 was returned; something is wrong with the file
+	if res.StatusCode == 500 {
+		deleteFile(filePath)
+		fmt.Printf("Unsuccessful %v POST with code 500; deleted the image %v\n", s.visionApiUrl, filePath) // FIXME: deleting the file will allow for a refetch
+	}
 
 	if res.StatusCode != 200 {
 		panic(fmt.Sprintf("Unsuccessful %v POST with code %v", s.visionApiUrl, res.Status))
