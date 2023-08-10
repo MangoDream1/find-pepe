@@ -65,6 +65,12 @@ func deleteFile(path string) {
 	fmt.Printf("Successfully deleted file %v\n", path)
 }
 
+func moveFile(oldPath string, newPath string) {
+	blob := readFile(oldPath)
+	writeFile(newPath, blob)
+	deleteFile(oldPath)
+}
+
 func doesFileExist(path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {

@@ -87,16 +87,14 @@ func (s *ImageScraper) classifyImageByPath(path string) {
 
 	if probability >= PepeThreshold {
 		newPath := replaceDir(path, UnclassifiedDir, PepeDir)
-		writeFile(newPath, blob)
+		moveFile(path, newPath)
 	} else if probability >= MaybeThreshold {
 		newPath := replaceDir(path, UnclassifiedDir, MaybeDir)
-		writeFile(newPath, blob)
+		moveFile(path, newPath)
 	} else {
 		newPath := replaceDir(path, UnclassifiedDir, NonPepeDir)
-		writeFile(newPath, blob)
+		moveFile(path, newPath)
 	}
-
-	deleteFile(path)
 }
 
 func (s *ImageScraper) storeImageRequest(request *imageRequest, output chan string) string {
@@ -166,9 +164,11 @@ func (s *ImageScraper) retrieveImageProbability(filePath string, blob []byte) fl
 	utils.Check(err)
 
 	// assume that if 500 was returned; something is wrong with the file
+	// move to maybe
 	if res.StatusCode == 500 {
-		deleteFile(filePath)
-		fmt.Printf("Unsuccessful %v POST with code 500; deleted the image %v\n", s.visionApiUrl, filePath) // FIXME: deleting the file will allow for a refetch
+		newPath := replaceDir(filePath, UnclassifiedDir, MaybeDir)
+		moveFile(filePath, newPath)
+		fmt.Printf("Unsuccessful %v POST with code 500; deleted the image %v\n", s.visionApiUrl, filePath)
 	}
 
 	if res.StatusCode != 200 {
