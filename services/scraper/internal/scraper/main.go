@@ -20,7 +20,7 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 	}
 
 	httpScraper := newHttpScraper(httpReaders, allowedHrefSubstrings, requiredHrefSubstrings)
-	imageScraper := newImageScraper(visionApiUrl, allowedImageTypes)
+	imageScraper := newImageScraper(httpReaders, visionApiUrl, allowedImageTypes)
 
 	return &Scraper{
 		httpReaders:  httpReaders,
@@ -36,11 +36,13 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 // }
 
 func (s *Scraper) Start(startHref string) *Scraper {
+	done := make(chan int)
+
 	go s.httpScraper.Start(startHref)
 	go s.imageScraper.Start()
 
-	for {
-		reader := <-s.httpReaders
-		go s.imageScraper.findHref(reader)
-	}
+	// TODO: actually await here
+	<-done
+
+	return s
 }

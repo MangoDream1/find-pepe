@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	"go-find-pepe/internal/utils"
@@ -149,7 +150,7 @@ func (s *HttpScraper) getHttp(href string) *HttpScraper {
 
 func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
 	fileName := s.createFileName(r.href)
-	path := createPath(httpDir, fileName)
+	path := filepath.Join(getProjectPath(), httpDir, fileName)
 	writeFile(path, r.data)
 	return s
 }
@@ -164,7 +165,7 @@ func (s *HttpScraper) storeHtml(r httpRequest) *HttpScraper {
 
 func (s *HttpScraper) doesHtmlExist(href string) bool {
 	fileName := s.createFileName(href)
-	path := createPath(httpDir, fileName)
+	path := filepath.Join(getProjectPath(), httpDir, fileName)
 	return doesFileExist(path)
 }
 

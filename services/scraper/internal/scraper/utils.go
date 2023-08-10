@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -75,26 +76,29 @@ func doesFileExist(path string) bool {
 
 // readNestedDir finds all nested files within the original dirPath and puts the path into output
 func readNestedDir(dirPath string, output chan string) {
-	// dirPath does not exists, return early
-	if !doesFileExist(dirPath) {
-		return
-	}
+	var wg sync.WaitGroup
 
-	fs, err := ioutil.ReadDir(dirPath)
-	utils.Check(err)
+	var inner func(dirPath string)
+	inner = func(dirPath string) {
+		defer wg.Done()
 
-	for _, f := range fs {
-		path := createPath(dirPath, f.Name())
-		if f.IsDir() {
-			go readNestedDir(path, output)
-		} else {
-			output <- path
+		fs, err := os.ReadDir(dirPath)
+		utils.Check(err)
+
+		for _, f := range fs {
+			path := filepath.Join(dirPath, f.Name())
+			if f.IsDir() {
+				wg.Add(1)
+				go inner(path)
+			} else {
+				output <- path
+			}
 		}
 	}
-}
 
-func createPath(fileDir string, fileName string) string {
-	return filepath.Join(getProjectPath(), fileDir, fileName)
+	wg.Add(1)
+	go inner(dirPath)
+	wg.Wait()
 }
 
 func replaceDir(path string, oldDir string, newDir string) string {
@@ -211,7 +215,7 @@ func getURL(fileName string, url string) (response *http.Response, success bool,
 		data, err := ioutil.ReadAll(response.Body)
 		utils.Check(err)
 
-		path := createPath(ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, url, time.Now().UTC(), ".html"))
+		path := filepath.Join(getProjectPath(), ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, url, time.Now().UTC(), ".html"))
 		writeFile(path, data)
 		panic(fmt.Sprintf("Failed to GET %v; non-OK response: %v", url, response.StatusCode))
 	}

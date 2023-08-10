@@ -29,6 +29,7 @@ const MaybeThreshold = 0.3
 const VisionImageKey = "file"
 
 type ImageScraper struct {
+	httpReaders       chan io.Reader
 	hrefs             chan string
 	imageReaders      chan *io.Reader
 	toBeClassified    chan string
@@ -45,8 +46,9 @@ type visionResponse struct {
 	Score float32 `json:"score"`
 }
 
-func newImageScraper(visionApiUrl string, allowedImageTypes []string) *ImageScraper {
+func newImageScraper(httpReaders chan io.Reader, visionApiUrl string, allowedImageTypes []string) *ImageScraper {
 	return &ImageScraper{
+		httpReaders:       httpReaders,
 		hrefs:             make(chan string),
 		imageReaders:      make(chan *io.Reader),
 		toBeClassified:    make(chan string),
@@ -61,6 +63,8 @@ func (s *ImageScraper) Start() *ImageScraper {
 
 	for {
 		select {
+		case reader := <-s.httpReaders:
+			go s.findHref(reader)
 		case path := <-s.toBeClassified:
 			go s.classifyImageByPath(path)
 		case href := <-s.hrefs:
@@ -99,7 +103,7 @@ func (s *ImageScraper) storeImageRequest(request *imageRequest, output chan stri
 	blob, err := ioutil.ReadAll(request.response.Body)
 	utils.Check(err)
 
-	path := createPath(UnclassifiedDir, request.fileName)
+	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
 	writeFile(path, blob)
 	output <- path
 	return path
@@ -176,7 +180,7 @@ func (s *ImageScraper) retrieveImageProbability(fileName string, blob []byte) fl
 
 func (s *ImageScraper) doesImageExist(fileName string) bool {
 	for _, dir := range FileDirectories {
-		path := createPath(dir, fileName)
+		path := filepath.Join(getProjectPath(), dir, fileName)
 		if !doesFileExist(path) {
 			return false
 		}
