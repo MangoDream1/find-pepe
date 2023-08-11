@@ -2,8 +2,6 @@ package scraper
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"go-find-pepe/internal/utils"
 	"io"
@@ -22,11 +20,6 @@ import (
 const MAX_ATTEMPT = 5
 
 const ErrorDirectory = "data/error"
-
-func hash(s string) string {
-	sha1Bytes := sha1.Sum([]byte(s))
-	return hex.EncodeToString(sha1Bytes[:])
-}
 
 func writeFile(path string, b []byte) {
 	defer func() {
@@ -130,6 +123,12 @@ func addExtension(id string, extension string) string {
 	return fmt.Sprintf("%s.%s", id, extension)
 }
 
+func removeExtension(filename string) string {
+	extension := filepath.Ext(filename)
+	n := strings.LastIndex(filename, extension)
+	return filename[:n]
+}
+
 func stringShouldContainOneFilter(s string, filters []string) bool {
 	for _, filter := range filters {
 		if strings.Contains(s, filter) {
@@ -156,7 +155,7 @@ func getHostname(rawurl string) string {
 	return parsed.Hostname()
 }
 
-func cleanUpUrl(url string) string {
+func fixMissingHttps(url string) string {
 	if len(url) < 2 {
 		return url
 	}

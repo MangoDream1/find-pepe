@@ -15,7 +15,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-const httpDir = "data/http"
+const HtmlDir = "data/html"
 
 type HttpScraper struct {
 	httpReaders            chan io.Reader
@@ -26,17 +26,24 @@ type HttpScraper struct {
 }
 
 type httpRequest struct {
-	id   string
 	href string
 	data []byte
 }
 
 func (s *HttpScraper) Start(startHref string) {
 	hrefs := make(chan string)
-	requests := make(chan *httpRequest)
+	toBeScrapped := make(chan string)
 
 	done := make(chan bool)
 	wgU := utils.WaitGroupUtil{WaitGroup: s.wg}
+
+	dirPath := filepath.Join(getProjectPath(), HtmlDir)
+	wgU.Wrapper(func() {
+		readNestedDir(dirPath, func(path string) {
+			s.wg.Add(1)
+			toBeScrapped <- path
+		})
+	})
 
 	wgU.Wrapper(
 		func() {
@@ -51,9 +58,9 @@ func (s *HttpScraper) Start(startHref string) {
 				panic(fmt.Errorf("failed to get startHref %v; %v", startHref, err))
 			}
 
-			s.storeHtml(request)
+			path := s.storeHtml(request)
 			s.wg.Add(1)
-			requests <- request
+			toBeScrapped <- path
 		},
 	)
 
@@ -68,22 +75,27 @@ func (s *HttpScraper) Start(startHref string) {
 		case <-done:
 			fmt.Println("HttpScraper exited")
 			return
-		case request := <-requests:
+		case path := <-toBeScrapped:
 			func() {
 				defer s.wg.Done()
+
 				wgU.Wrapper(func() {
-					s.findHref(request, hrefs)
+					html := readFile(path)
+					reader := bytes.NewReader(html)
+
+					s.wg.Add(1)
+					s.httpReaders <- reader
+
+					href := s.pathToUrl(path)
+					s.findHref(href, reader, hrefs)
 				})
-
-				s.wg.Add(1)
-				s.httpReaders <- bytes.NewBuffer(request.data) // FIXME: hier zit het probleem
 			}()
-
 		case href := <-hrefs:
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
 
 				request, err := s.getHttp(href)
+
 				if err != nil {
 					if err.Error() == "http unallowed source" || err.Error() == "html already exists" {
 						return
@@ -95,24 +107,26 @@ func (s *HttpScraper) Start(startHref string) {
 					}
 				}
 
-				s.storeHtml(request)
+				path := s.storeHtml(request)
 
 				s.wg.Add(1)
-				requests <- request
+				toBeScrapped <- path
 			})
 		}
 	}
 }
 
-func (s *HttpScraper) findHref(request *httpRequest, output chan string) *HttpScraper {
-	reader := bytes.NewReader(request.data)
+func (s *HttpScraper) findHref(parentHref string, reader *bytes.Reader, output chan string) *HttpScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
 	doc.Find("a").Each(func(i int, selection *goquery.Selection) {
 		href, exists := selection.Attr("href")
+		if !exists {
+			return
+		}
 
-		unallowed := [2]string{"javascript", "#"}
+		unallowed := [5]string{"javascript", "#", " ", "<", ">"}
 		for _, s := range unallowed {
 			if strings.Contains(href, s) {
 				return
@@ -123,29 +137,24 @@ func (s *HttpScraper) findHref(request *httpRequest, output chan string) *HttpSc
 			return
 		}
 
-		cleanedHref := cleanUpUrl(href)
-
+		cleanedHref := fixMissingHttps(href)
 		hostname := getHostname(cleanedHref)
 		if hostname == "" && cleanedHref[0] != '/' {
-			cleanedHref = request.href + cleanedHref
+			cleanedHref = parentHref + cleanedHref
 		}
-
-		if exists {
-			s.wg.Add(1)
-			output <- cleanedHref
-		}
+		s.wg.Add(1)
+		output <- cleanedHref
 	})
 
 	return s
 }
 
 func (s *HttpScraper) getHttp(href string) (*httpRequest, error) {
-	requestId := hash(href)
 	if s.doesHtmlExist(href) {
 		return nil, errors.New("html already exists")
 	}
 
-	cleanedHref := cleanUpUrl(href)
+	cleanedHref := fixMissingHttps(href)
 	hostname := getHostname(cleanedHref)
 
 	correctAllowedSubstrings := stringShouldContainOneFilter(hostname, s.allowedHrefSubstrings)
@@ -164,29 +173,35 @@ func (s *HttpScraper) getHttp(href string) (*httpRequest, error) {
 	data, err := ioutil.ReadAll(response.Body)
 	utils.Check(err)
 
-	return &httpRequest{id: requestId, data: data, href: href}, nil
+	return &httpRequest{data: data, href: href}, nil
 }
 
 func (s *HttpScraper) storeHtml(r *httpRequest) string {
-	fileName := s.createFileName(r.href)
-	path := filepath.Join(getProjectPath(), httpDir, fileName)
+	fileName := s.transformUrlIntoFilename(r.href)
+	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
 	writeFile(path, r.data)
 	return path
 }
 
 func (s *HttpScraper) doesHtmlExist(href string) bool {
-	fileName := s.createFileName(href)
-	path := filepath.Join(getProjectPath(), httpDir, fileName)
+	fileName := s.transformUrlIntoFilename(href)
+	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
 	return doesFileExist(path)
 }
 
-func (s *HttpScraper) createFileName(href string) (fileName string) {
+func (s *HttpScraper) transformUrlIntoFilename(href string) (fileName string) {
 	fileName = href
-	fileName = strings.Replace(fileName, "https://", "", 1)
-	fileName = strings.Replace(fileName, "www.", "", 1)
 	if fileName[len(fileName)-1] == '/' {
 		fileName = fileName[0 : len(fileName)-1]
 	}
 	fileName = addExtension(fileName, "html")
+	return
+}
+
+func (s *HttpScraper) pathToUrl(path string) (url string) {
+	storage := filepath.Join(getProjectPath(), HtmlDir) + "/"
+	url = strings.Replace(removeExtension(path), storage, "", 1) + "/"
+	url = strings.Replace(url, "https:/", "https://", 1)
+
 	return
 }

@@ -144,7 +144,7 @@ func (s *ImageScraper) storeImageRequest(request *imageRequest, output chan stri
 }
 
 func (s *ImageScraper) getImage(href string) (*imageRequest, error) {
-	cleanedHref := cleanUpUrl(href)
+	cleanedHref := fixMissingHttps(href)
 
 	correctRequiredSubstrings := stringShouldContainOneFilter(cleanedHref, s.allowedImageTypes)
 	if !correctRequiredSubstrings {
