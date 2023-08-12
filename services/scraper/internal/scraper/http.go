@@ -16,8 +16,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-const HtmlDir = "data/html"
-
 type HttpScraper struct {
 	httpReaders            chan io.Reader
 	allowedHrefSubstrings  []string

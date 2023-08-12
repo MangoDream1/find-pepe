@@ -16,18 +16,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-const ImageDir = "data/image"
-const MaybeDir = ImageDir + "/maybe"
-const PepeDir = ImageDir + "/pepe"
-const NonPepeDir = ImageDir + "/non-pepe"
-const UnclassifiedDir = ImageDir + "/unclassified"
-
-var FileDirectories = [4]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir}
-
-const PepeThreshold = 0.9
-const MaybeThreshold = 0.3
-
-const VisionImageKey = "file"
+var ImageFileDirectories = [4]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir}
 
 type ImageScraper struct {
 	httpReaders       chan io.Reader
@@ -220,7 +209,7 @@ func (s *ImageScraper) retrieveImageProbability(filePath string, blob []byte) fl
 }
 
 func (s *ImageScraper) doesImageExist(fileName string) bool {
-	for _, dir := range FileDirectories {
+	for _, dir := range ImageFileDirectories {
 		path := filepath.Join(getProjectPath(), dir, fileName)
 		if !doesFileExist(path) {
 			return false

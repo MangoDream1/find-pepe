@@ -17,10 +17,6 @@ import (
 	"time"
 )
 
-const MAX_ATTEMPT = 5
-
-const ErrorDirectory = "data/error"
-
 func writeFile(path string, b []byte) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -175,8 +171,8 @@ func getURL(url string, nAttempt uint8) (response *http.Response, success bool) 
 		}
 	}()
 
-	if nAttempt >= MAX_ATTEMPT {
-		panic(fmt.Errorf("failed to getURL after MAX_ATTEMPT=%v", MAX_ATTEMPT))
+	if nAttempt >= MAX_RETRY_ATTEMPT {
+		panic(fmt.Errorf("failed to getURL after MAX_ATTEMPT=%v", MAX_RETRY_ATTEMPT))
 	}
 
 	retry := func() (response *http.Response, success bool) {
