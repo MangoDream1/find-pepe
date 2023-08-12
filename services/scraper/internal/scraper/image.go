@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -26,9 +25,9 @@ type ImageScraper struct {
 	done              *sync.Mutex
 }
 
-type imageRequest struct {
+type imageResponse struct {
 	fileName string
-	response *http.Response
+	body     *[]byte
 }
 
 type visionResponse struct {
@@ -120,19 +119,16 @@ func (s *ImageScraper) classifyImageByPath(path string) {
 	}
 }
 
-func (s *ImageScraper) storeImageRequest(request *imageRequest, output chan string) string {
+func (s *ImageScraper) storeImageRequest(request *imageResponse, output chan string) string {
 	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
 
-	blob, err := ioutil.ReadAll(request.response.Body)
-	utils.Check(err)
-
-	writeFile(path, blob)
+	writeFile(path, request.body)
 	s.wg.Add(1)
 	output <- path
 	return path
 }
 
-func (s *ImageScraper) getImage(href string) (*imageRequest, error) {
+func (s *ImageScraper) getImage(href string) (*imageResponse, error) {
 	cleanedHref := fixMissingHttps(href)
 
 	correctRequiredSubstrings := stringShouldContainOneFilter(cleanedHref, s.allowedImageTypes)
@@ -145,13 +141,17 @@ func (s *ImageScraper) getImage(href string) (*imageRequest, error) {
 		return nil, errors.New("image already exists")
 	}
 
-	response, success := getURL(cleanedHref, 1)
+	request := Request{url: cleanedHref, reuseConnection: true, method: "GET"}
+	response, _, success := request.Do(1)
 
 	if !success {
 		return nil, errors.New("unsuccessful response")
 	}
 
-	return &imageRequest{fileName: fileName, response: response}, nil
+	data, err := ioutil.ReadAll(response)
+	utils.Check(err)
+
+	return &imageResponse{fileName: fileName, body: &data}, nil
 }
 
 func (s *ImageScraper) findHref(reader io.Reader, output chan string) *ImageScraper {
@@ -171,7 +171,7 @@ func (s *ImageScraper) findHref(reader io.Reader, output chan string) *ImageScra
 	return s
 }
 
-func (s *ImageScraper) retrieveImageProbability(filePath string, blob []byte) float32 {
+func (s *ImageScraper) retrieveImageProbability(filePath string, blob *[]byte) float32 {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("An error has occurred while trying to classify an image with name: %v \n", filePath)
@@ -182,23 +182,22 @@ func (s *ImageScraper) retrieveImageProbability(filePath string, blob []byte) fl
 	b, w := createSingleFileMultiPart(VisionImageKey, filePath, blob)
 	ct := w.FormDataContentType()
 
-	// TODO: use utils.getURL instead
-	res, err := http.Post(s.visionApiUrl, ct, b)
-	utils.Check(err)
+	request := Request{url: s.visionApiUrl, reuseConnection: true, method: "POST", body: b, contentType: &ct}
+	response, statusCode, success := request.Do(1)
 
 	// assume that if 500 was returned; something is wrong with the file
 	// move to maybe
-	if res.StatusCode == 500 {
+	if statusCode == 500 {
 		newPath := replaceDir(filePath, UnclassifiedDir, MaybeDir)
 		moveFile(filePath, newPath)
-		fmt.Printf("Unsuccessful %v POST with code 500; moved the image %v\n", s.visionApiUrl, filePath)
+		fmt.Printf("Unsuccessful POST %v with code 500; moved the image %v\n", s.visionApiUrl, filePath)
 	}
 
-	if res.StatusCode != 200 {
-		panic(fmt.Errorf("unsuccessful %v POST with code %v", s.visionApiUrl, res.Status))
+	if !success {
+		panic(fmt.Errorf("cannot retrieve probability; url %v with code %v", s.visionApiUrl, statusCode))
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := ioutil.ReadAll(response)
 	utils.Check(err)
 
 	var vRes visionResponse

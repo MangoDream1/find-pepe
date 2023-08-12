@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func writeFile(path string, b []byte) {
+func writeFile(path string, b *[]byte) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("An error has occurred while trying to store an file with name: %v \n", path)
@@ -35,16 +35,16 @@ func writeFile(path string, b []byte) {
 	utils.Check(err)
 	defer f.Close()
 
-	_, err = f.Write(b)
+	_, err = f.Write(*b)
 	utils.Check(err)
 	fmt.Printf("Successfully written file to %v\n", path)
 }
 
-func readFile(path string) []byte {
+func readFile(path string) *[]byte {
 	buffer, err := ioutil.ReadFile(path)
 	utils.Check(err)
 
-	return buffer
+	return &buffer
 }
 
 func deleteFile(path string) {
@@ -168,57 +168,79 @@ func fixMissingHttps(url string) string {
 	return url
 }
 
-func getURL(url string, nAttempt uint8) (response *http.Response, success bool) {
+type Request struct {
+	url             string
+	reuseConnection bool
+	method          string
+	body            io.Reader
+	contentType     *string
+}
+
+func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, success bool) {
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Printf("An error has occurred while trying to retrieve href: %v\n", url)
+			fmt.Printf("An error has occurred while trying to retrieve href: %v %v\n", r.method, r.url)
 			panic(err)
 		}
 	}()
 
 	if nAttempt >= MAX_RETRY_ATTEMPT {
-		panic(fmt.Errorf("failed to getURL after MAX_ATTEMPT=%v", MAX_RETRY_ATTEMPT))
+		panic(fmt.Errorf("failed to %v %v after MAX_ATTEMPT=%v", r.method, r.url, MAX_RETRY_ATTEMPT))
 	}
 
-	retry := func() (response *http.Response, success bool) {
+	retry := func() (response io.ReadCloser, statusCode int, success bool) {
 		backoff := calculateExponentialBackoffInSec(nAttempt)
-		fmt.Printf("Retrying url: %v after %v\n", url, backoff)
+		fmt.Printf("Retrying %v %v after %v\n", r.method, r.url, backoff)
 		time.Sleep(time.Second * time.Duration(nAttempt))
-		return getURL(url, nAttempt+1)
+		return r.Do(nAttempt + 1)
 	}
 
-	fmt.Printf("Fetching %v\n", url)
+	fmt.Printf("Fetching %v %v\n", r.method, r.url)
 
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequest(r.method, r.url, r.body)
 
 	req.Header.Add("User-Agent", "PostmanRuntime/7.29.3")
 	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	req.Header.Add("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Add("Connection", "keep-alive")
+	if r.contentType != nil {
+		req.Header.Set("Content-Type", *r.contentType)
+	}
+
+	if r.reuseConnection {
+		req.Header.Add("Connection", "keep-alive")
+	} else {
+		req.Close = true
+	}
 
 	response, err := client.Do(req)
+	statusCode = response.StatusCode
 
 	success = false
 	if err != nil {
 		msg := err.Error()
 
 		if stringShouldContainOneFilter(msg, []string{"timeout", "connection reset"}) {
-			fmt.Printf("Failed to GET %v; timeout\n", url)
+			fmt.Printf("Failed to %v %v; timeout\n", r.method, r.url)
 			return retry()
 		}
 
-		fmt.Printf("Failed to GET %v; unknown error %v\n", url, msg)
+		if stringShouldContainOneFilter(msg, []string{"EOF"}) {
+			fmt.Printf("Failed to %v %v; EOF\n", r.method, r.url)
+			return retry()
+		}
+
+		fmt.Printf("Failed to %v %v; unknown error %v\n", r.method, r.url, msg)
 		return
 	}
 
 	if response.StatusCode == 503 {
-		fmt.Printf("Failed to GET %v; 503 response\n", url)
+		fmt.Printf("Failed to %v %v; 503 response\n", r.method, r.url)
 		return retry()
 	}
 
 	if response.StatusCode == 404 {
-		fmt.Printf("Failed to GET %v; 404 response\n", url)
+		fmt.Printf("Failed to %v %v; 404 response\n", r.method, r.url)
 		return
 	}
 
@@ -226,24 +248,25 @@ func getURL(url string, nAttempt uint8) (response *http.Response, success bool) 
 		data, err := ioutil.ReadAll(response.Body)
 		utils.Check(err)
 
-		path := filepath.Join(getProjectPath(), ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, url, time.Now().UTC(), ".html"))
-		writeFile(path, data)
-		panic(fmt.Sprintf("Failed to GET %v; non-OK response: %v", url, response.StatusCode))
+		path := filepath.Join(getProjectPath(), ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, r.url, time.Now().UTC(), ".html"))
+		writeFile(path, &data)
+		panic(fmt.Sprintf("Failed to %v %v; non-OK response: %v", r.method, r.url, response.StatusCode))
 	}
 
-	fmt.Printf("Successfully fetched %v \n", url)
+	fmt.Printf("Successfully fetched %v %v \n", r.method, r.url)
+	reader = response.Body
 	success = true
 	return
 }
 
-func createSingleFileMultiPart(key string, fileName string, file []byte) (*bytes.Buffer, *multipart.Writer) {
+func createSingleFileMultiPart(key string, fileName string, file *[]byte) (*bytes.Buffer, *multipart.Writer) {
 	var b bytes.Buffer
 	writer := multipart.NewWriter(&b)
 
 	part, err := writer.CreateFormFile(key, fileName)
 	utils.Check(err)
 
-	r := bytes.NewReader(file)
+	r := bytes.NewReader(*file)
 	_, err = io.Copy(part, r)
 	utils.Check(err)
 

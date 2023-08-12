@@ -24,9 +24,9 @@ type HttpScraper struct {
 	done                   *sync.Mutex
 }
 
-type httpRequest struct {
+type httpResponse struct {
 	href string
-	data []byte
+	body *[]byte
 }
 
 func (s *HttpScraper) Start(startHref string) {
@@ -81,7 +81,7 @@ func (s *HttpScraper) Start(startHref string) {
 
 				wgU.Wrapper(func() {
 					html := readFile(path)
-					reader := bytes.NewReader(html)
+					reader := bytes.NewReader(*html)
 
 					s.wg.Add(1)
 					s.httpReaders <- reader
@@ -136,7 +136,7 @@ func (s *HttpScraper) findHref(parentHref string, reader *bytes.Reader, output c
 			return
 		}
 
-		unallowed := [5]string{"javascript", "#", " ", "<", ">"}
+		unallowed := [6]string{"javascript", "#", " ", "<", ">", ":"}
 		for _, s := range unallowed {
 			if strings.Contains(href, s) {
 				return
@@ -159,7 +159,7 @@ func (s *HttpScraper) findHref(parentHref string, reader *bytes.Reader, output c
 	return s
 }
 
-func (s *HttpScraper) getHttp(href string) (*httpRequest, error) {
+func (s *HttpScraper) getHttp(href string) (*httpResponse, error) {
 	if s.doesHtmlExist(href) {
 		return nil, errors.New("html already exists")
 	}
@@ -174,22 +174,23 @@ func (s *HttpScraper) getHttp(href string) (*httpRequest, error) {
 		return nil, errors.New("http unallowed source")
 	}
 
-	response, success := getURL(cleanedHref, 1)
+	request := Request{url: cleanedHref, reuseConnection: true, method: "GET"}
+	response, _, success := request.Do(1)
 
 	if !success {
 		return nil, errors.New("unsuccessful response")
 	}
 
-	data, err := ioutil.ReadAll(response.Body)
+	data, err := ioutil.ReadAll(response)
 	utils.Check(err)
 
-	return &httpRequest{data: data, href: href}, nil
+	return &httpResponse{body: &data, href: href}, nil
 }
 
-func (s *HttpScraper) storeHtml(r *httpRequest) string {
+func (s *HttpScraper) storeHtml(r *httpResponse) string {
 	fileName := s.transformUrlIntoFilename(r.href)
 	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
-	writeFile(path, r.data)
+	writeFile(path, r.body)
 	return path
 }
 
