@@ -1,3 +1,4 @@
 - probably store model not just weights and load model only without building layers
 - add frontend
 - prevent cronjobs from overlapping
+- multiple build step DOckerfile
