@@ -19,8 +19,8 @@ spec:
             image: scraper:latest
             resources:
               limits:
-                memory: 512Mi
-                cpu: 200m
+                memory: 2Gi
+                cpu: 1000m
             env:
             - name: VISION_API_URL
               value: http://vision:5000
@@ -54,8 +54,8 @@ spec:
 #         image: scraper:latest
 #         resources:
 #           limits:
-#             memory: 512Mi
-#             cpu: 200m
+#             memory: 2Gi
+#             cpu: 1000m
 #         env:
 #         - name: VISION_API_URL
 #           value: http://vision:5000

@@ -24,6 +24,6 @@ spec:
         name: vision
         resources:
           limits:
-            memory: 512Mi
+            memory: 1Gi
             cpu: 200m
 status: {}
