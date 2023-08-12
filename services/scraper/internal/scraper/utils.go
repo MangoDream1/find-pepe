@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go-find-pepe/internal/utils"
 	"io"
-	"io/ioutil"
 	"math"
 	"mime/multipart"
 	"net/http"
@@ -17,7 +16,7 @@ import (
 	"time"
 )
 
-func writeFile(path string, b *[]byte) {
+func writeFile(path string, file io.ReadCloser) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("An error has occurred while trying to store an file with name: %v \n", path)
@@ -35,16 +34,17 @@ func writeFile(path string, b *[]byte) {
 	utils.Check(err)
 	defer f.Close()
 
-	_, err = f.Write(*b)
+	_, err = io.Copy(f, file)
 	utils.Check(err)
+
 	fmt.Printf("Successfully written file to %v\n", path)
 }
 
-func readFile(path string) *[]byte {
-	buffer, err := ioutil.ReadFile(path)
+func readFile(path string) io.ReadCloser {
+	file, err := os.Open(path)
 	utils.Check(err)
 
-	return &buffer
+	return file
 }
 
 func deleteFile(path string) {
@@ -58,8 +58,10 @@ func deleteFile(path string) {
 }
 
 func moveFile(oldPath string, newPath string) {
-	blob := readFile(oldPath)
-	writeFile(newPath, blob)
+	file := readFile(oldPath)
+	defer file.Close()
+
+	writeFile(newPath, file)
 	deleteFile(oldPath)
 }
 
@@ -247,11 +249,8 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 	}
 
 	if response.StatusCode != 200 {
-		data, err := ioutil.ReadAll(reader)
-		utils.Check(err)
-
 		path := filepath.Join(getProjectPath(), ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, r.url, time.Now().UTC(), ".html"))
-		writeFile(path, &data)
+		writeFile(path, reader)
 		return
 	}
 
@@ -260,15 +259,14 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 	return
 }
 
-func createSingleFileMultiPart(key string, fileName string, file *[]byte) (*bytes.Buffer, *multipart.Writer) {
+func createSingleFileMultiPart(key string, fileName string, file io.ReadCloser) (*bytes.Buffer, *multipart.Writer) {
 	var b bytes.Buffer
 	writer := multipart.NewWriter(&b)
 
 	part, err := writer.CreateFormFile(key, fileName)
 	utils.Check(err)
 
-	r := bytes.NewReader(*file)
-	_, err = io.Copy(part, r)
+	_, err = io.Copy(part, file)
 	utils.Check(err)
 
 	err = writer.Close()

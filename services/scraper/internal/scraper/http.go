@@ -1,11 +1,9 @@
 package scraper
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +24,7 @@ type HttpScraper struct {
 
 type httpResponse struct {
 	href string
-	body *[]byte
+	body *io.ReadCloser
 }
 
 func (s *HttpScraper) Start(startHref string) {
@@ -78,23 +76,24 @@ func (s *HttpScraper) Start(startHref string) {
 		case path := <-toBeScrapped:
 			func() {
 				defer s.wg.Done()
-				html := readFile(path)
-				reader := bytes.NewReader(*html)
 				parentHref := s.pathToUrl(path)
 
 				wgU.Wrapper(func() {
-					s.findHtmlHref(parentHref, reader, hrefs)
+					file := readFile(path)
+					defer file.Close()
+					s.findHtmlHref(parentHref, file, hrefs)
 				})
 				wgU.Wrapper(func() {
-					s.findImageHref(parentHref, reader, s.imageHrefs)
+					file := readFile(path)
+					defer file.Close()
+					s.findImageHref(parentHref, file, s.imageHrefs)
 				})
 			}()
 		case href := <-hrefs:
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
 
-				request, err := s.getHttp(href)
-
+				response, err := s.getHttp(href)
 				if err != nil {
 					if err.Error() == "http unallowed source" || err.Error() == "html already exists" {
 						return
@@ -106,7 +105,8 @@ func (s *HttpScraper) Start(startHref string) {
 					}
 				}
 
-				path := s.storeHtml(request)
+				defer (*response.body).Close()
+				path := s.storeHtml(response)
 
 				s.wg.Add(1)
 				toBeScrapped <- path
@@ -211,16 +211,13 @@ func (s *HttpScraper) getHttp(href string) (*httpResponse, error) {
 		return nil, errors.New("unsuccessful response")
 	}
 
-	data, err := ioutil.ReadAll(response)
-	utils.Check(err)
-
-	return &httpResponse{body: &data, href: href}, nil
+	return &httpResponse{body: &response, href: href}, nil
 }
 
 func (s *HttpScraper) storeHtml(r *httpResponse) string {
 	fileName := s.transformUrlIntoFilename(r.href)
 	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
-	writeFile(path, r.body)
+	writeFile(path, *r.body)
 	return path
 }
 

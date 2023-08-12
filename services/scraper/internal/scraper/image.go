@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -24,7 +25,7 @@ type Image struct {
 
 type imageResponse struct {
 	fileName string
-	body     *[]byte
+	body     *io.ReadCloser
 }
 
 type visionResponse struct {
@@ -76,7 +77,7 @@ func (s *Image) Start() {
 		case href := <-s.imageHrefs:
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
-				request, err := s.getImage(href)
+				response, err := s.getImage(href)
 				if err != nil {
 					if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
 						return
@@ -87,16 +88,19 @@ func (s *Image) Start() {
 						panic(err)
 					}
 				}
+				defer (*response.body).Close()
 
-				s.storeImageRequest(request, toBeClassified)
+				s.storeImageResponse(response, toBeClassified)
 			})
 		}
 	}
 }
 
 func (s *Image) classifyImageByPath(path string) {
-	blob := readFile(path)
-	probability, err := s.retrieveImageProbability(path, blob)
+	file := readFile(path)
+	defer file.Close()
+
+	probability, err := s.retrieveImageProbability(path, file)
 
 	if err != nil {
 		if err.Error() == "faulty file" {
@@ -121,10 +125,10 @@ func (s *Image) classifyImageByPath(path string) {
 	}
 }
 
-func (s *Image) storeImageRequest(request *imageResponse, output chan string) string {
+func (s *Image) storeImageResponse(request *imageResponse, output chan string) string {
 	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
 
-	writeFile(path, request.body)
+	writeFile(path, *request.body)
 	s.wg.Add(1)
 	output <- path
 	return path
@@ -150,13 +154,10 @@ func (s *Image) getImage(href string) (*imageResponse, error) {
 		return nil, errors.New("unsuccessful response")
 	}
 
-	data, err := ioutil.ReadAll(response)
-	utils.Check(err)
-
-	return &imageResponse{fileName: fileName, body: &data}, nil
+	return &imageResponse{fileName: fileName, body: &response}, nil
 }
 
-func (s *Image) retrieveImageProbability(filePath string, blob *[]byte) (float32, error) {
+func (s *Image) retrieveImageProbability(filePath string, file io.ReadCloser) (float32, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("An error has occurred while trying to classify an image with name: %v \n", filePath)
@@ -164,7 +165,7 @@ func (s *Image) retrieveImageProbability(filePath string, blob *[]byte) (float32
 		}
 	}()
 
-	b, w := createSingleFileMultiPart(VisionImageKey, filePath, blob)
+	b, w := createSingleFileMultiPart(VisionImageKey, filePath, file)
 	ct := w.FormDataContentType()
 
 	request := Request{url: s.visionApiUrl, reuseConnection: true, method: "POST", body: b, contentType: &ct}
