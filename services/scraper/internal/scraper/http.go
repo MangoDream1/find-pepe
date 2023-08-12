@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -73,6 +74,7 @@ func (s *HttpScraper) Start(startHref string) {
 	for {
 		select {
 		case <-done:
+			s.cleanup()
 			fmt.Println("HttpScraper exited")
 			return
 		case path := <-toBeScrapped:
@@ -114,6 +116,16 @@ func (s *HttpScraper) Start(startHref string) {
 			})
 		}
 	}
+}
+
+// cleanup html folder after all images and other html are found so the next pass
+// will find the rest
+func (s *HttpScraper) cleanup() {
+	path := filepath.Join(getProjectPath(), HtmlDir)
+	fmt.Printf("Beginning to delete %v directory\n", path)
+	err := os.RemoveAll(path)
+	utils.Check(err)
+	fmt.Printf("Cleaned %v directory\n", path)
 }
 
 func (s *HttpScraper) findHref(parentHref string, reader *bytes.Reader, output chan string) *HttpScraper {

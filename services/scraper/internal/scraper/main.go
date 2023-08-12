@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"go-find-pepe/internal/utils"
 	"io"
 	"os"
 	"sync"
@@ -50,14 +51,21 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 }
 
 func (s *Scraper) Start(startHref string) *Scraper {
+	wg := &sync.WaitGroup{}
+	wgU := utils.WaitGroupUtil{WaitGroup: wg}
+
 	s.done.Lock()
 
 	s.wg.Add(2)
-	go s.httpScraper.Start(startHref)
-	go s.imageScraper.Start()
+
+	wgU.Wrapper(func() {
+		s.httpScraper.Start(startHref)
+	})
+	wgU.Wrapper(s.imageScraper.Start)
 
 	s.wg.Wait()
 	s.done.Unlock()
+	wg.Wait()
 
 	return s
 }
