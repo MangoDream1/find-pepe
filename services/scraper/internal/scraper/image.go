@@ -4,25 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"go-find-pepe/internal/utils"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 var ImageFileDirectories = [4]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir}
 
-type ImageScraper struct {
-	httpReaders       chan io.Reader
+type Image struct {
 	allowedImageTypes []string
 	visionApiUrl      string
 	wg                *sync.WaitGroup
 	done              *sync.Mutex
+	imageHrefs        chan string
 }
 
 type imageResponse struct {
@@ -34,8 +31,7 @@ type visionResponse struct {
 	Score float32 `json:"score"`
 }
 
-func (s *ImageScraper) Start() {
-	hrefs := make(chan string)
+func (s *Image) Start() {
 	toBeClassified := make(chan string)
 
 	done := make(chan bool)
@@ -61,11 +57,6 @@ func (s *ImageScraper) Start() {
 		case <-done:
 			fmt.Println("ImageScraper exited")
 			return
-		case reader := <-s.httpReaders:
-			wgU.Wrapper(func() {
-				defer s.wg.Done()
-				s.findHref(reader, hrefs)
-			})
 		case path := <-toBeClassified:
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
@@ -82,7 +73,7 @@ func (s *ImageScraper) Start() {
 
 				s.classifyImageByPath(path)
 			})
-		case href := <-hrefs:
+		case href := <-s.imageHrefs:
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
 				request, err := s.getImage(href)
@@ -103,7 +94,7 @@ func (s *ImageScraper) Start() {
 	}
 }
 
-func (s *ImageScraper) classifyImageByPath(path string) {
+func (s *Image) classifyImageByPath(path string) {
 	blob := readFile(path)
 	probability := s.retrieveImageProbability(path, blob)
 
@@ -119,7 +110,7 @@ func (s *ImageScraper) classifyImageByPath(path string) {
 	}
 }
 
-func (s *ImageScraper) storeImageRequest(request *imageResponse, output chan string) string {
+func (s *Image) storeImageRequest(request *imageResponse, output chan string) string {
 	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
 
 	writeFile(path, request.body)
@@ -128,7 +119,7 @@ func (s *ImageScraper) storeImageRequest(request *imageResponse, output chan str
 	return path
 }
 
-func (s *ImageScraper) getImage(href string) (*imageResponse, error) {
+func (s *Image) getImage(href string) (*imageResponse, error) {
 	cleanedHref := fixMissingHttps(href)
 
 	correctRequiredSubstrings := stringShouldContainOneFilter(cleanedHref, s.allowedImageTypes)
@@ -154,24 +145,7 @@ func (s *ImageScraper) getImage(href string) (*imageResponse, error) {
 	return &imageResponse{fileName: fileName, body: &data}, nil
 }
 
-func (s *ImageScraper) findHref(reader io.Reader, output chan string) *ImageScraper {
-	doc, err := goquery.NewDocumentFromReader(reader)
-	utils.Check(err)
-
-	fileSelection := doc.Find("div .file").Find("div .fileText")
-	fileSelection.Find("a").Each(func(i int, selection *goquery.Selection) {
-		href, exists := selection.Attr("href")
-
-		if exists {
-			s.wg.Add(1)
-			output <- href
-		}
-	})
-
-	return s
-}
-
-func (s *ImageScraper) retrieveImageProbability(filePath string, blob *[]byte) float32 {
+func (s *Image) retrieveImageProbability(filePath string, blob *[]byte) float32 {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("An error has occurred while trying to classify an image with name: %v \n", filePath)
@@ -207,7 +181,7 @@ func (s *ImageScraper) retrieveImageProbability(filePath string, blob *[]byte) f
 	return vRes.Score
 }
 
-func (s *ImageScraper) doesImageExist(fileName string) bool {
+func (s *Image) doesImageExist(fileName string) bool {
 	for _, dir := range ImageFileDirectories {
 		path := filepath.Join(getProjectPath(), dir, fileName)
 		if !doesFileExist(path) {
@@ -218,7 +192,7 @@ func (s *ImageScraper) doesImageExist(fileName string) bool {
 	return true
 }
 
-func (s *ImageScraper) transformUrlIntoFilename(url string) string {
+func (s *Image) transformUrlIntoFilename(url string) string {
 	p := strings.Split(url, `/`)
 	return strings.Join(p[2:], `/`)
 }

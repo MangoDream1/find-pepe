@@ -17,11 +17,11 @@ import (
 )
 
 type HttpScraper struct {
-	httpReaders            chan io.Reader
 	allowedHrefSubstrings  []string
 	requiredHrefSubstrings []string
 	wg                     *sync.WaitGroup
 	done                   *sync.Mutex
+	imageHrefs             chan string
 }
 
 type httpResponse struct {
@@ -78,16 +78,15 @@ func (s *HttpScraper) Start(startHref string) {
 		case path := <-toBeScrapped:
 			func() {
 				defer s.wg.Done()
+				html := readFile(path)
+				reader := bytes.NewReader(*html)
+				parentHref := s.pathToUrl(path)
 
 				wgU.Wrapper(func() {
-					html := readFile(path)
-					reader := bytes.NewReader(*html)
-
-					s.wg.Add(1)
-					s.httpReaders <- reader
-
-					href := s.pathToUrl(path)
-					s.findHref(href, reader, hrefs)
+					s.findHtmlHref(parentHref, reader, hrefs)
+				})
+				wgU.Wrapper(func() {
+					s.findImageHref(parentHref, reader, s.imageHrefs)
 				})
 			}()
 		case href := <-hrefs:
@@ -126,7 +125,7 @@ func (s *HttpScraper) cleanup() {
 	fmt.Printf("Cleaned %v directory\n", path)
 }
 
-func (s *HttpScraper) findHref(parentHref string, reader *bytes.Reader, output chan string) *HttpScraper {
+func (s *HttpScraper) findHtmlHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
@@ -152,6 +151,37 @@ func (s *HttpScraper) findHref(parentHref string, reader *bytes.Reader, output c
 		if hostname == "" && cleanedHref[0] != '/' {
 			cleanedHref = parentHref + cleanedHref
 		}
+		s.wg.Add(1)
+		output <- cleanedHref
+	})
+
+	return s
+}
+
+func (s *HttpScraper) findImageHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
+	doc, err := goquery.NewDocumentFromReader(reader)
+	utils.Check(err)
+
+	fileSelection := doc.Find("div .file").Find("div .fileText")
+	fileSelection.Find("a").Each(func(i int, selection *goquery.Selection) {
+		href, exists := selection.Attr("href")
+		if !exists {
+			return
+		}
+
+		unallowed := [6]string{"javascript", "#", " ", "<", ">", ":"}
+		for _, s := range unallowed {
+			if strings.Contains(href, s) {
+				return
+			}
+		}
+
+		cleanedHref := fixMissingHttps(href)
+		hostname := getHostname(cleanedHref)
+		if hostname == "" && cleanedHref[0] != '/' {
+			cleanedHref = parentHref + cleanedHref
+		}
+
 		s.wg.Add(1)
 		output <- cleanedHref
 	})

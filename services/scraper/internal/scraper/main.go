@@ -2,21 +2,19 @@ package scraper
 
 import (
 	"go-find-pepe/internal/utils"
-	"io"
 	"os"
 	"sync"
 )
 
 type Scraper struct {
 	httpScraper  *HttpScraper
-	imageScraper *ImageScraper
-	httpReaders  chan io.Reader
+	imageScraper *Image
 	wg           *sync.WaitGroup
 	done         *sync.Mutex
 }
 
 func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, allowedImageTypes []string) *Scraper {
-	httpReaders := make(chan io.Reader)
+	imageHrefs := make(chan string)
 
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
@@ -27,22 +25,21 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 	}
 
 	httpScraper := &HttpScraper{
-		httpReaders:            httpReaders,
 		allowedHrefSubstrings:  allowedHrefSubstrings,
 		requiredHrefSubstrings: requiredHrefSubstrings,
 		wg:                     wg,
 		done:                   mutex,
+		imageHrefs:             imageHrefs,
 	}
-	imageScraper := &ImageScraper{
-		httpReaders:       httpReaders,
+	imageScraper := &Image{
 		allowedImageTypes: allowedImageTypes,
 		visionApiUrl:      visionApiUrl,
 		wg:                wg,
 		done:              mutex,
+		imageHrefs:        imageHrefs,
 	}
 
 	return &Scraper{
-		httpReaders:  httpReaders,
 		imageScraper: imageScraper,
 		httpScraper:  httpScraper,
 		wg:           wg,
