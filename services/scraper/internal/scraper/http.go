@@ -100,7 +100,7 @@ func (s *HttpScraper) Start(startHref string) {
 					if err.Error() == "http unallowed source" || err.Error() == "html already exists" {
 						return
 					} else if err.Error() == "unsuccessful response" {
-						fmt.Printf("Failed request %v; ignoring", href)
+						fmt.Printf("Failed request %v; ignoring\n", href)
 						return
 					} else {
 						panic(err)

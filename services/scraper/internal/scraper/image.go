@@ -91,7 +91,7 @@ func (s *ImageScraper) Start() {
 					if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
 						return
 					} else if err.Error() == "unsuccessful response" {
-						fmt.Printf("Failed request %v; ignoring", href)
+						fmt.Printf("Failed request %v; ignoring\n", href)
 						return
 					} else {
 						panic(err)
