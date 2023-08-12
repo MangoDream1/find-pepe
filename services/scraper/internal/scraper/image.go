@@ -12,7 +12,7 @@ import (
 	"go-find-pepe/internal/utils"
 )
 
-var ImageFileDirectories = [4]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir}
+var ImageFileDirectories = [5]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir, FaultyDir}
 
 type Image struct {
 	allowedImageTypes []string
@@ -96,7 +96,18 @@ func (s *Image) Start() {
 
 func (s *Image) classifyImageByPath(path string) {
 	blob := readFile(path)
-	probability := s.retrieveImageProbability(path, blob)
+	probability, err := s.retrieveImageProbability(path, blob)
+
+	if err != nil {
+		if err.Error() == "faulty file" {
+			fmt.Printf("Unsuccessful POST %v; moved image %v\n", s.visionApiUrl, path)
+			newPath := replaceDir(path, UnclassifiedDir, FaultyDir)
+			moveFile(path, newPath)
+			return
+		}
+
+		panic(err)
+	}
 
 	if probability >= PepeThreshold {
 		newPath := replaceDir(path, UnclassifiedDir, PepeDir)
@@ -145,7 +156,7 @@ func (s *Image) getImage(href string) (*imageResponse, error) {
 	return &imageResponse{fileName: fileName, body: &data}, nil
 }
 
-func (s *Image) retrieveImageProbability(filePath string, blob *[]byte) float32 {
+func (s *Image) retrieveImageProbability(filePath string, blob *[]byte) (float32, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("An error has occurred while trying to classify an image with name: %v \n", filePath)
@@ -160,15 +171,12 @@ func (s *Image) retrieveImageProbability(filePath string, blob *[]byte) float32 
 	response, statusCode, success := request.Do(1)
 
 	// assume that if 500 was returned; something is wrong with the file
-	// move to maybe
 	if statusCode == 500 {
-		newPath := replaceDir(filePath, UnclassifiedDir, MaybeDir)
-		moveFile(filePath, newPath)
-		fmt.Printf("Unsuccessful POST %v with code 500; moved the image %v\n", s.visionApiUrl, filePath)
+		return 0, fmt.Errorf("faulty file")
 	}
 
 	if !success {
-		panic(fmt.Errorf("cannot retrieve probability; url %v with code %v", s.visionApiUrl, statusCode))
+		return 0, fmt.Errorf("non-success response")
 	}
 
 	data, err := ioutil.ReadAll(response)
@@ -178,7 +186,7 @@ func (s *Image) retrieveImageProbability(filePath string, blob *[]byte) float32 
 	err = json.Unmarshal(data, &vRes)
 	utils.Check(err)
 
-	return vRes.Score
+	return vRes.Score, nil
 }
 
 func (s *Image) doesImageExist(fileName string) bool {

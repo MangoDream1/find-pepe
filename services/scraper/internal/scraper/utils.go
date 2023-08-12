@@ -250,7 +250,7 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 
 		path := filepath.Join(getProjectPath(), ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, r.url, time.Now().UTC(), ".html"))
 		writeFile(path, &data)
-		panic(fmt.Sprintf("Failed to %v %v; non-OK response: %v", r.method, r.url, response.StatusCode))
+		return
 	}
 
 	fmt.Printf("Successfully fetched %v %v \n", r.method, r.url)

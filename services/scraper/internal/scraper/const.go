@@ -9,6 +9,7 @@ const MaybeDir = ImageDir + "/maybe"
 const PepeDir = ImageDir + "/pepe"
 const NonPepeDir = ImageDir + "/non-pepe"
 const UnclassifiedDir = ImageDir + "/unclassified"
+const FaultyDir = ImageDir + "/faulty"
 
 const PepeThreshold = 0.9
 const MaybeThreshold = 0.3
