@@ -16,7 +16,7 @@ type Scraper struct {
 }
 
 func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, allowedImageTypes []string) *Scraper {
-	httpReaders := make(chan io.Reader) // FIXME: both image and http use this same reader; should fan out to both; https://stackoverflow.com/questions/28527038/go-one-channel-with-multiple-listeners
+	httpReaders := make(chan io.Reader)
 
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
