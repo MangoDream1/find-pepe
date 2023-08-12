@@ -74,6 +74,11 @@ func doesFileExist(path string) bool {
 
 // readNestedDir finds all nested files within the original dirPath and puts the path into output
 func readNestedDir(dirPath string, output func(string)) {
+	if !doesFileExist(dirPath) {
+		fmt.Printf("Stopped reading nested directory; %v does not exists\n", dirPath)
+		return
+	}
+
 	var wg sync.WaitGroup
 
 	var inner func(dirPath string)
