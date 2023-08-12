@@ -11,7 +11,6 @@ func main() {
 	var allowedImageTypes = []string{".jpg", ".gif", ".png"}
 
 	scraper := scraper.NewScraper(allowedHrefSubstrings, requiredHrefSubstrings, allowedImageTypes)
-	// go scraper.ReadDownloadedIds()
 
 	scraper.Start("https://boards.4channel.org/g/")
 }
