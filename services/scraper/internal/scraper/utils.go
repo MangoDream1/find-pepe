@@ -214,7 +214,6 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 	}
 
 	response, err := client.Do(req)
-	statusCode = response.StatusCode
 
 	success = false
 	if err != nil {
@@ -234,6 +233,9 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 		return
 	}
 
+	statusCode = response.StatusCode
+	reader = response.Body
+
 	if response.StatusCode == 503 {
 		fmt.Printf("Failed to %v %v; 503 response\n", r.method, r.url)
 		return retry()
@@ -245,7 +247,7 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 	}
 
 	if response.StatusCode != 200 {
-		data, err := ioutil.ReadAll(response.Body)
+		data, err := ioutil.ReadAll(reader)
 		utils.Check(err)
 
 		path := filepath.Join(getProjectPath(), ErrorDirectory, fmt.Sprintf("%v/%v%v%v", response.StatusCode, r.url, time.Now().UTC(), ".html"))
@@ -254,7 +256,6 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 	}
 
 	fmt.Printf("Successfully fetched %v %v \n", r.method, r.url)
-	reader = response.Body
 	success = true
 	return
 }
