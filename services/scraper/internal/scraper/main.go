@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"go-find-pepe/internal/utils"
 	"os"
 	"sync"
 )
@@ -49,7 +48,7 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 
 func (s *Scraper) Start(startHref string) *Scraper {
 	wg := &sync.WaitGroup{}
-	wgU := utils.WaitGroupUtil{WaitGroup: wg}
+	wgU := WaitGroupUtil{WaitGroup: wg}
 
 	s.done.Lock()
 

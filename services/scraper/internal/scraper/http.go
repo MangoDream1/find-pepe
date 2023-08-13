@@ -32,7 +32,7 @@ func (s *HttpScraper) Start(startHref string) {
 	toBeScrapped := make(chan string)
 
 	done := make(chan bool)
-	wgU := utils.WaitGroupUtil{WaitGroup: s.wg}
+	wgU := WaitGroupUtil{WaitGroup: s.wg}
 
 	dirPath := filepath.Join(getProjectPath(), HtmlDir)
 	wgU.Wrapper(func() {

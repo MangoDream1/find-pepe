@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -277,4 +278,41 @@ func createSingleFileMultiPart(key string, fileName string, file io.ReadCloser) 
 
 func calculateExponentialBackoffInSec(a uint8) float64 {
 	return math.Pow(2, float64(a))
+}
+
+func writeToPanicFile() {
+	if err := recover(); err != nil {
+
+		switch x := err.(type) {
+		case string:
+			err = x
+		case error:
+			err = x.Error()
+		default:
+			// Fallback err (per specs, error strings should be lowercase w/o punctuation
+			err = "unknown panic"
+		}
+
+		path := filepath.Join(getProjectPath(), ErrorDirectory, "panic", time.Now().UTC().String()+".txt")
+
+		stack := string(debug.Stack()[:])
+		file := io.NopCloser(strings.NewReader(fmt.Sprintf("%v\n%v", stack, err)))
+
+		writeFile(path, file)
+
+		panic(err)
+	}
+}
+
+type WaitGroupUtil struct {
+	WaitGroup *sync.WaitGroup
+}
+
+func (k *WaitGroupUtil) Wrapper(f func()) {
+	k.WaitGroup.Add(1)
+	go func() {
+		defer writeToPanicFile()
+		defer k.WaitGroup.Done()
+		f()
+	}()
 }
