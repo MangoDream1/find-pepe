@@ -226,6 +226,11 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 			return retry()
 		}
 
+		if stringShouldContainOneFilter(msg, []string{"connection refused"}) {
+			fmt.Printf("Failed to %v %v; connection refused\n", r.method, r.url)
+			return retry()
+		}
+
 		if stringShouldContainOneFilter(msg, []string{"EOF"}) {
 			fmt.Printf("Failed to %v %v; EOF\n", r.method, r.url)
 			return retry()
