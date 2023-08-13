@@ -93,7 +93,11 @@ func (s *HttpScraper) Start(startHref string) {
 
 				response, err := s.getHttp(href)
 				if err != nil {
-					if err.Error() == "http unallowed source" || err.Error() == "html already exists" {
+					if err.Error() == "not found" {
+						// store something so it does not get picked up again
+						file := io.NopCloser(strings.NewReader("404"))
+						response = &httpResponse{body: &file, href: href}
+					} else if err.Error() == "http unallowed source" || err.Error() == "html already exists" {
 						return
 					} else if err.Error() == "unsuccessful response" {
 						fmt.Printf("Failed request %v; ignoring\n", href)
@@ -203,7 +207,11 @@ func (s *HttpScraper) getHttp(href string) (*httpResponse, error) {
 	}
 
 	request := Request{url: cleanedHref, reuseConnection: true, method: "GET"}
-	response, _, success := request.Do(1)
+	response, statusCode, success := request.Do(1)
+
+	if statusCode == 404 {
+		return nil, errors.New("not found")
+	}
 
 	if !success {
 		return nil, errors.New("unsuccessful response")
