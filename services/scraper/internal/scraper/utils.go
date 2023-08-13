@@ -326,3 +326,25 @@ func check(e error) {
 		panic(e)
 	}
 }
+
+type Limiter struct {
+	total  uint8
+	amount uint8
+	done   chan bool
+}
+
+func (l *Limiter) Add() {
+	if l.amount > l.total {
+		<-l.done
+	}
+
+	l.amount += 1
+}
+
+func (l *Limiter) Done() {
+	if l.amount >= l.total {
+		l.done <- true
+	}
+
+	l.amount -= 1
+}

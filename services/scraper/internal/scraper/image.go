@@ -36,14 +36,16 @@ func (s *Image) Start() {
 	done := make(chan bool)
 	wgU := WaitGroupUtil{WaitGroup: s.wg}
 
-	dirPath := filepath.Join(getProjectPath(), UnclassifiedDir)
-
 	wgU.Wrapper(func() {
+		dirPath := filepath.Join(getProjectPath(), UnclassifiedDir)
 		readNestedDir(dirPath, func(path string) {
 			s.wg.Add(1)
 			toBeClassified <- path
 		})
 	})
+
+	hrefLimiter := &Limiter{total: 10, amount: 0, done: make(chan bool)}
+	classifyLimiter := &Limiter{total: 10, amount: 0, done: make(chan bool)}
 
 	go func() {
 		s.done.Lock()
@@ -57,8 +59,11 @@ func (s *Image) Start() {
 			fmt.Println("ImageScraper exited")
 			return
 		case path := <-toBeClassified:
+			classifyLimiter.Add()
+
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
+				defer classifyLimiter.Done()
 				defer func() {
 					if err := recover(); err != nil {
 						if strings.Contains(err.(error).Error(), "no such file or directory") {
@@ -73,8 +78,10 @@ func (s *Image) Start() {
 				s.classifyImageByPath(path)
 			})
 		case href := <-s.imageHrefs:
+			hrefLimiter.Add()
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
+				defer hrefLimiter.Done()
 				response, err := s.getImage(href)
 				if err != nil {
 					if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
