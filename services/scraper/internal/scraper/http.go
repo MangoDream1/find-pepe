@@ -9,8 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"go-find-pepe/internal/utils"
-
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -121,13 +119,13 @@ func (s *HttpScraper) cleanup() {
 	path := filepath.Join(getProjectPath(), HtmlDir)
 	fmt.Printf("Beginning to delete %v directory\n", path)
 	err := os.RemoveAll(path)
-	utils.Check(err)
+	check(err)
 	fmt.Printf("Cleaned %v directory\n", path)
 }
 
 func (s *HttpScraper) findHtmlHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
-	utils.Check(err)
+	check(err)
 
 	doc.Find("a").Each(func(i int, selection *goquery.Selection) {
 		href, exists := selection.Attr("href")
@@ -160,7 +158,7 @@ func (s *HttpScraper) findHtmlHref(parentHref string, reader io.Reader, output c
 
 func (s *HttpScraper) findImageHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
-	utils.Check(err)
+	check(err)
 
 	fileSelection := doc.Find("div .file").Find("div .fileText")
 	fileSelection.Find("a").Each(func(i int, selection *goquery.Selection) {

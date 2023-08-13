@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"go-find-pepe/internal/utils"
 )
 
 var ImageFileDirectories = [5]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir, FaultyDir}
@@ -181,11 +179,11 @@ func (s *Image) retrieveImageProbability(filePath string, file io.ReadCloser) (f
 	}
 
 	data, err := ioutil.ReadAll(response)
-	utils.Check(err)
+	check(err)
 
 	var vRes visionResponse
 	err = json.Unmarshal(data, &vRes)
-	utils.Check(err)
+	check(err)
 
 	return vRes.Score, nil
 }

@@ -3,7 +3,6 @@ package scraper
 import (
 	"bytes"
 	"fmt"
-	"go-find-pepe/internal/utils"
 	"io"
 	"math"
 	"mime/multipart"
@@ -29,21 +28,21 @@ func writeFile(path string, file io.ReadCloser) {
 
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, os.ModePerm)
-	utils.Check(err)
+	check(err)
 
 	f, err := os.Create(path)
-	utils.Check(err)
+	check(err)
 	defer f.Close()
 
 	_, err = io.Copy(f, file)
-	utils.Check(err)
+	check(err)
 
 	fmt.Printf("Successfully written file to %v\n", path)
 }
 
 func readFile(path string) io.ReadCloser {
 	file, err := os.Open(path)
-	utils.Check(err)
+	check(err)
 
 	return file
 }
@@ -54,7 +53,7 @@ func deleteFile(path string) {
 	}
 
 	err := os.Remove(path)
-	utils.Check(err)
+	check(err)
 	fmt.Printf("Successfully deleted file %v\n", path)
 }
 
@@ -89,7 +88,7 @@ func readNestedDir(dirPath string, output func(string)) {
 		defer wg.Done()
 
 		fs, err := os.ReadDir(dirPath)
-		utils.Check(err)
+		check(err)
 
 		for _, f := range fs {
 			path := filepath.Join(dirPath, f.Name())
@@ -119,7 +118,7 @@ func replaceDir(oldPath string, oldDir string, newDir string) string {
 
 func getProjectPath() string {
 	projectPath, err := os.Getwd()
-	utils.Check(err)
+	check(err)
 	return projectPath
 }
 
@@ -155,7 +154,7 @@ func stringShouldContainAllFilters(s string, filters []string) bool {
 
 func getHostname(rawurl string) string {
 	parsed, err := url.Parse(rawurl)
-	utils.Check(err)
+	check(err)
 	return parsed.Hostname()
 }
 
@@ -265,13 +264,13 @@ func createSingleFileMultiPart(key string, fileName string, file io.ReadCloser) 
 	writer := multipart.NewWriter(&b)
 
 	part, err := writer.CreateFormFile(key, fileName)
-	utils.Check(err)
+	check(err)
 
 	_, err = io.Copy(part, file)
-	utils.Check(err)
+	check(err)
 
 	err = writer.Close()
-	utils.Check(err)
+	check(err)
 
 	return &b, writer
 }
@@ -315,4 +314,10 @@ func (k *WaitGroupUtil) Wrapper(f func()) {
 		defer k.WaitGroup.Done()
 		f()
 	}()
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }
