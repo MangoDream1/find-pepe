@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"fmt"
 	"os"
 	"sync"
 )
@@ -21,6 +22,12 @@ func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string,
 	visionApiUrl := os.Getenv("VISION_API_URL")
 	if visionApiUrl == "" {
 		panic("VISION_API_URL unset")
+	}
+
+	r := Request{url: fmt.Sprintf("%v/health", visionApiUrl), reuseConnection: false, method: "GET"}
+	_, _, success := r.Do(1)
+	if !success {
+		panic("Failed to do VISION_API_URL health")
 	}
 
 	httpScraper := &HttpScraper{

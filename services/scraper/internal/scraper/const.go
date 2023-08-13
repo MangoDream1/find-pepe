@@ -16,4 +16,4 @@ const MaybeThreshold = 0.3
 
 const VisionImageKey = "file"
 
-const MAX_RETRY_ATTEMPT = 5
+const MAX_RETRY_ATTEMPT = 10
