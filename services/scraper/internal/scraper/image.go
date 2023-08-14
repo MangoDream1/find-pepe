@@ -44,7 +44,7 @@ func (s *Image) Start() {
 		})
 	})
 
-	hrefLimiter := &Limiter{total: 10, amount: 0, done: make(chan bool)}
+	// hrefLimiter := &Limiter{total: 10, amount: 0, done: make(chan bool)}
 	classifyLimiter := &Limiter{total: 10, amount: 0, done: make(chan bool)}
 
 	go func() {
@@ -78,10 +78,10 @@ func (s *Image) Start() {
 				s.classifyImageByPath(path)
 			})
 		case href := <-s.imageHrefs:
-			hrefLimiter.Add()
+			// hrefLimiter.Add()
 			wgU.Wrapper(func() {
 				defer s.wg.Done()
-				defer hrefLimiter.Done()
+				// defer hrefLimiter.Done()
 				response, err := s.getImage(href)
 				if err != nil {
 					if err.Error() == "image type not allowed" || err.Error() == "image already exists" {

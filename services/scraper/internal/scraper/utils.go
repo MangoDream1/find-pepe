@@ -334,16 +334,27 @@ type Limiter struct {
 }
 
 func (l *Limiter) Add() {
-	if l.amount > l.total {
+	fmt.Printf("Limited Add: amount %v; total %v\n", l.amount, l.total)
+	l.amount += 1
+
+	if l.amount >= l.total {
+		fmt.Printf("Limited Add WAITING: amount %v; total %v\n", l.amount, l.total)
 		<-l.done
+		fmt.Printf("Limited Add STOPPED: amount %v; total %v\n", l.amount, l.total)
+
 	}
 
-	l.amount += 1
 }
 
 func (l *Limiter) Done() {
+	fmt.Printf("Limited Done: amount %v; total %v\n", l.amount, l.total)
+
 	if l.amount >= l.total {
+		fmt.Printf("Limited Done WAITING: amount %v; total %v\n", l.amount, l.total)
+
 		l.done <- true
+		fmt.Printf("Limited Done STOPPED: amount %v; total %v\n", l.amount, l.total)
+
 	}
 
 	l.amount -= 1
