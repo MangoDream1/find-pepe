@@ -328,34 +328,39 @@ func check(e error) {
 }
 
 type Limiter struct {
-	total  uint8
-	amount uint8
-	done   chan bool
+	Total   uint8
+	amount  uint8
+	waiting uint8
+	done    chan bool
+	m       sync.Mutex
+}
+
+func NewLimiter(total uint8) *Limiter {
+	return &Limiter{
+		Total: total,
+		m:     sync.Mutex{},
+		done:  make(chan bool),
+	}
 }
 
 func (l *Limiter) Add() {
-	fmt.Printf("Limited Add: amount %v; total %v\n", l.amount, l.total)
-	l.amount += 1
+	l.m.Lock()
 
-	if l.amount >= l.total {
-		fmt.Printf("Limited Add WAITING: amount %v; total %v\n", l.amount, l.total)
+	if l.amount >= l.Total {
+		l.waiting += 1
 		<-l.done
-		fmt.Printf("Limited Add STOPPED: amount %v; total %v\n", l.amount, l.total)
-
 	}
 
+	l.amount += 1
+	l.m.Unlock()
 }
 
 func (l *Limiter) Done() {
-	fmt.Printf("Limited Done: amount %v; total %v\n", l.amount, l.total)
+	l.amount -= 1
 
-	if l.amount >= l.total {
-		fmt.Printf("Limited Done WAITING: amount %v; total %v\n", l.amount, l.total)
-
+	if l.waiting > 0 {
+		l.waiting -= 1
 		l.done <- true
-		fmt.Printf("Limited Done STOPPED: amount %v; total %v\n", l.amount, l.total)
-
 	}
 
-	l.amount -= 1
 }

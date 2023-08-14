@@ -44,8 +44,8 @@ func (s *Image) Start() {
 		})
 	})
 
-	// hrefLimiter := &Limiter{total: 10, amount: 0, done: make(chan bool)}
-	classifyLimiter := &Limiter{total: 10, amount: 0, done: make(chan bool)}
+	hrefLimiter := NewLimiter(10)
+	classifyLimiter := NewLimiter(10)
 
 	go func() {
 		s.done.Lock()
@@ -59,9 +59,8 @@ func (s *Image) Start() {
 			fmt.Println("ImageScraper exited")
 			return
 		case path := <-toBeClassified:
-			classifyLimiter.Add()
-
 			wgU.Wrapper(func() {
+				classifyLimiter.Add()
 				defer s.wg.Done()
 				defer classifyLimiter.Done()
 				defer func() {
@@ -77,12 +76,16 @@ func (s *Image) Start() {
 
 				s.classifyImageByPath(path)
 			})
+
 		case href := <-s.imageHrefs:
-			// hrefLimiter.Add()
 			wgU.Wrapper(func() {
+				hrefLimiter.Add()
+
 				defer s.wg.Done()
-				// defer hrefLimiter.Done()
+				defer hrefLimiter.Done()
+
 				response, err := s.getImage(href)
+
 				if err != nil {
 					if err.Error() == "image type not allowed" || err.Error() == "image already exists" {
 						return
@@ -95,7 +98,8 @@ func (s *Image) Start() {
 				}
 				defer (*response.body).Close()
 
-				s.storeImageResponse(response, toBeClassified)
+				s.wg.Add(1)
+				toBeClassified <- s.storeImageResponse(response)
 			})
 		}
 	}
@@ -130,12 +134,10 @@ func (s *Image) classifyImageByPath(path string) {
 	}
 }
 
-func (s *Image) storeImageResponse(request *imageResponse, output chan string) string {
+func (s *Image) storeImageResponse(request *imageResponse) string {
 	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
 
 	writeFile(path, *request.body)
-	s.wg.Add(1)
-	output <- path
 	return path
 }
 
