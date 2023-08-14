@@ -1,69 +1,69 @@
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: scraper-cronjob
-  labels:
-    app: scraper
-spec:
-  schedule: "* * * * *"
-  jobTemplate:
-    metadata:
-      labels:
-        app: scraper
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-          - name: scraper
-            image: scraper:latest
-            resources:
-              limits:
-                memory: 2Gi
-                cpu: 1000m
-            env:
-            - name: VISION_API_URL
-              value: http://vision:5000
-            volumeMounts:
-            - name: volume
-              mountPath: /app/data/
-          volumes:
-          - name: volume
-            persistentVolumeClaim:
-              claimName: pepe-pvc
-# ---
-# apiVersion: apps/v1
-# kind: Deployment
+# apiVersion: batch/v1
+# kind: CronJob
 # metadata:
+#   name: scraper-cronjob
 #   labels:
-#     app: scraper-deployment
-#   name: scraper
+#     app: scraper
 # spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: scraper
-#   strategy: {}
-#   template:
+#   schedule: "* * * * *"
+#   jobTemplate:
 #     metadata:
 #       labels:
 #         app: scraper
 #     spec:
-#       containers:
-#       - name: scraper
-#         image: scraper:latest
-#         resources:
-#           limits:
-#             memory: 2Gi
-#             cpu: 1000m
-#         env:
-#         - name: VISION_API_URL
-#           value: http://vision:5000
-#         volumeMounts:
-#         - name: volume
-#           mountPath: /app/data/
-#       volumes:
-#       - name: volume
-#         persistentVolumeClaim:
-#           claimName: pepe-pvc
-# status: {}
+#       template:
+#         spec:
+#           restartPolicy: OnFailure
+#           containers:
+#           - name: scraper
+#             image: scraper:latest
+#             resources:
+#               limits:
+#                 memory: 2Gi
+#                 cpu: 1000m
+#             env:
+#             - name: VISION_API_URL
+#               value: http://vision:5000
+#             volumeMounts:
+#             - name: volume
+#               mountPath: /app/data/
+#           volumes:
+#           - name: volume
+#             persistentVolumeClaim:
+#               claimName: pepe-pvc
+# ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: scraper-deployment
+  name: scraper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scraper
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: scraper
+    spec:
+      containers:
+      - name: scraper
+        image: scraper:latest
+        resources:
+          limits:
+            memory: 2Gi
+            cpu: 1000m
+        env:
+        - name: VISION_API_URL
+          value: http://vision:5000
+        volumeMounts:
+        - name: volume
+          mountPath: /app/data/
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: pepe-pvc
+status: {}
