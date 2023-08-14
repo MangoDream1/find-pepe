@@ -167,25 +167,32 @@ func (s *Image) retrieveImageProbability(filePath string, file io.ReadCloser) (f
 	ct := w.FormDataContentType()
 
 	request := Request{url: s.visionApiUrl, reuseConnection: true, method: "POST", body: b, contentType: &ct}
-	response, statusCode, success := request.Do(1)
 
-	// assume that if 500 was returned; something is wrong with the file
-	if statusCode == 500 {
-		return 0, fmt.Errorf("faulty file")
+	var do func(nRetry uint8) (float32, error)
+	do = func(nRetry uint8) (float32, error) {
+		response, statusCode, success := request.Do(nRetry)
+
+		// assume that if 500 was returned; something is wrong with the file
+		if statusCode == 500 {
+			return 0, fmt.Errorf("faulty file")
+		}
+
+		if !success {
+			// retry the request; not 500 or 200, most likely some temporary error
+			return do(nRetry + 1)
+		}
+
+		data, err := ioutil.ReadAll(response)
+		check(err)
+
+		var vRes visionResponse
+		err = json.Unmarshal(data, &vRes)
+		check(err)
+
+		return vRes.Score, nil
 	}
 
-	if !success {
-		return 0, fmt.Errorf("non-success response")
-	}
-
-	data, err := ioutil.ReadAll(response)
-	check(err)
-
-	var vRes visionResponse
-	err = json.Unmarshal(data, &vRes)
-	check(err)
-
-	return vRes.Score, nil
+	return do(1)
 }
 
 func (s *Image) doesImageExist(fileName string) bool {
