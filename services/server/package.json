@@ -1,0 +1,30 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.18.2",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/morgan": "^1.9.4",
+    "@types/node": "^20.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.52.0",
+    "eslint": "^8.0.1",
+    "eslint-config-standard-with-typescript": "^37.0.0",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-n": "^15.0.0 || ^16.0.0 ",
+    "eslint-plugin-promise": "^6.0.0",
+    "typescript": "*"
+  },
+  "scripts": {
+    "prebuild": "rm -r build; mkdir build; ln -s ../public build/public",
+    "build": "yarn tsc",
+    "prestart": "yarn build",
+    "start": "yarn node build/index.js"
+  }
+}
