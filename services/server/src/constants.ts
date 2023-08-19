@@ -1,4 +1,4 @@
-export const PORT = Number(process.env.PORT) || 8080;
+export const PORT = Number(process.env.PORT) || 5000;
 export const DATA_DIR = process.env.DATA_DIR || "public/image";
 
 export const BODY_LIMIT = process.env.BODY_LIMIT || "100mb";

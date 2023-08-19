@@ -26,7 +26,7 @@ spec:
           value: production
         ports:
         - name: http-server
-          containerPort: 8080
+          containerPort: 5000
           protocol: TCP
         name: server
         volumeMounts:

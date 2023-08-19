@@ -18,5 +18,5 @@ WORKDIR /usr/src/app
 COPY --from=BUILD /usr/src/app/build ./build
 COPY --from=BUILD /usr/src/app/node_modules ./node_modules
 
-EXPOSE 8080
+EXPOSE 5000
 CMD [ "node", "build/index.js" ]
