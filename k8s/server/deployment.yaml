@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: server
+  name: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+      - image: server:latest
+        resources:
+          limits:
+            memory: 500Mi
+            cpu: 100m
+        env:
+        - name: NODE_ENV
+          value: production
+        ports:
+        - name: http-server
+          containerPort: 8080
+          protocol: TCP
+        name: server
+        volumeMounts:
+        - name: volume
+          mountPath: /usr/src/app/public/
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: pepe-pvc
+status: {}

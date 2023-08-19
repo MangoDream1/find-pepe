@@ -12,6 +12,10 @@ build:
       context: services/vision
       docker:
         dockerfile: Dockerfile
+    - image: server
+      context: services/server
+      docker:
+        dockerfile: Dockerfile
 manifests:
   rawYaml:
     - k8s/common/namespace.yaml
@@ -20,6 +24,8 @@ manifests:
     - k8s/scraper/cronjob.yaml
     - k8s/vision/deployment.yaml
     - k8s/vision/service.yaml
+    - k8s/server/deployment.yaml
+    - k8s/server/service.yaml
 deploy:
   kubectl:
     defaultNamespace: find-pepe
