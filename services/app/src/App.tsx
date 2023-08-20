@@ -1,6 +1,6 @@
-import { Button, ImageList, ImageListItem } from "@mui/material";
+import { ImageList, ImageListItem } from "@mui/material";
 import Box from "@mui/material/Box";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { OFFSET_SIZE } from "./constants";
 import { transformPathToImagePath, useGetImagePaths } from "./hooks";
 
@@ -22,6 +22,25 @@ function App() {
   const response = useGetImagePaths();
   const { from, to } = rangeFromOffset(offset);
 
+  const onScroll = useCallback(() => {
+    const bottom =
+      Math.ceil(window.innerHeight + window.scrollY) >=
+      document.documentElement.scrollHeight;
+
+    if (bottom) {
+      setOffset(offset + 1);
+    }
+  }, [offset]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", onScroll);
+
+    // Clean-up
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [onScroll]);
+
   if (response.error) return <>An error has occurred</>;
   if (response.isLoading || !response.data) return <>Loading...</>;
 
@@ -38,7 +57,6 @@ function App() {
           </ImageListItem>
         ))}
       </ImageList>
-      <Button onClick={() => setOffset(offset + 1)}>More</Button>
     </Box>
   );
 }
