@@ -5,11 +5,13 @@
   "license": "MIT",
   "dependencies": {
     "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "helmet": "^7.0.0",
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
     "@types/morgan": "^1.9.4",
     "@types/node": "^20.5.0",
@@ -22,9 +24,11 @@
     "typescript": "*"
   },
   "scripts": {
-    "prebuild": "rm -r build; mkdir build; ln -s ../public build/public",
+    "prebuild": "rm -rf build; mkdir build",
     "build": "yarn tsc",
-    "prestart": "yarn build",
+    "postbuild": "ln -s ../public build/public",
+    "predev": "yarn build",
+    "dev": "yarn node build/index.js",
     "start": "yarn node build/index.js"
   }
 }

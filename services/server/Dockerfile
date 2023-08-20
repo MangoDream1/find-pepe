@@ -9,14 +9,14 @@ RUN yarn install
 
 COPY . .
 
-RUN yarn tsc
-RUN ln -s ../public build/public
+RUN yarn build
 
 FROM node:18
 
 WORKDIR /usr/src/app
+COPY --from=BUILD /usr/src/app/package.json ./package.json
 COPY --from=BUILD /usr/src/app/build ./build
 COPY --from=BUILD /usr/src/app/node_modules ./node_modules
 
 EXPOSE 5000
-CMD [ "node", "build/index.js" ]
+CMD [ "yarn", "start" ]

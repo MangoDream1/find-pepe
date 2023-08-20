@@ -13,9 +13,19 @@ import http from "http";
 import path from "path";
 import { router } from "./route";
 import morgan from "morgan";
+import cors from "cors";
 
 const config = () => {
   const app = express();
+
+  // enable cors for development
+  if (NODE_ENV === "development") {
+    app.use(cors({ credentials: true }));
+  }
+
+  if (NODE_ENV === "production") {
+    app.use(helmet());
+  }
 
   app.use(
     bodyParser.json({
@@ -31,7 +41,6 @@ const config = () => {
   );
   app.use(morgan("common"));
 
-  app.use(helmet());
   app.use(
     PUBLIC_SERVE_LOCATION,
     express.static(path.join(__dirname, DATA_DIR))
