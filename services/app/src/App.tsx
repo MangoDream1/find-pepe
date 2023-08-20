@@ -47,15 +47,17 @@ function App() {
   return (
     <Box>
       <ImageList variant="masonry" cols={5}>
-        {response.data.slice(from, to).map((s, index) => (
-          <ImageListItem key={index}>
-            <img
-              src={transformPathToImagePath(s)}
-              loading="lazy"
-              style={{ width: "100%" }}
-            />
-          </ImageListItem>
-        ))}
+        {response.data.slice(from, to).map((s, index) => {
+          return (
+            <ImageListItem key={(index % 5) * 100000000 + index}>
+              <img
+                src={transformPathToImagePath(s)}
+                loading="lazy"
+                style={{ width: "100%" }}
+              />
+            </ImageListItem>
+          );
+        })}
       </ImageList>
     </Box>
   );
