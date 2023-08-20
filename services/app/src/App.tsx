@@ -1,9 +1,26 @@
-import { useGetImagePaths, transformPathToImagePath } from "./hooks";
+import { Button, ImageList, ImageListItem } from "@mui/material";
 import Box from "@mui/material/Box";
-import { ImageList, ImageListItem } from "@mui/material";
+import { useState } from "react";
+import { OFFSET_SIZE } from "./constants";
+import { transformPathToImagePath, useGetImagePaths } from "./hooks";
+
+function rangeFromOffset(offset: number): { from: number; to: number } {
+  console.log({
+    from: Math.max(offset * OFFSET_SIZE - OFFSET_SIZE, 0),
+    to: (offset + 1) * OFFSET_SIZE,
+  });
+
+  return {
+    from: Math.max(offset * OFFSET_SIZE - OFFSET_SIZE, 0),
+    to: (offset + 1) * OFFSET_SIZE,
+  };
+}
 
 function App() {
+  const [offset, setOffset] = useState<number>(0);
+
   const response = useGetImagePaths();
+  const { from, to } = rangeFromOffset(offset);
 
   if (response.error) return <>An error has occurred</>;
   if (response.isLoading || !response.data) return <>Loading...</>;
@@ -11,7 +28,7 @@ function App() {
   return (
     <Box>
       <ImageList variant="masonry" cols={5}>
-        {response.data.slice(0, 200).map((s, index) => (
+        {response.data.slice(from, to).map((s, index) => (
           <ImageListItem key={index}>
             <img
               src={transformPathToImagePath(s)}
@@ -21,6 +38,7 @@ function App() {
           </ImageListItem>
         ))}
       </ImageList>
+      <Button onClick={() => setOffset(offset + 1)}>More</Button>
     </Box>
   );
 }

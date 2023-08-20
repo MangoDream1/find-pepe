@@ -68,6 +68,5 @@ export function useGetImagePaths(searchParams?: {
 }
 
 export function transformPathToImagePath(path: string) {
-  console.log(path, GET_IMAGE_BY_PATH_URL(path).toString());
   return GET_IMAGE_BY_PATH_URL(path).toString();
 }
