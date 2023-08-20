@@ -74,7 +74,11 @@ router.get("/", rootValidator, (req, res) => {
   const board = req.query.board as string | undefined;
 
   if (category && board) {
-    res.status(200).send(Array.from(Core.retrieveImagePaths(category, board)));
+    res
+      .status(200)
+      .send(
+        Array.from(_retrieveImagesByBoardsAndCategories([board], [category]))
+      );
     return;
   }
 
