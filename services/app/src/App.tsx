@@ -1,11 +1,12 @@
 import {
   Drawer,
   FormControl,
+  Grid,
+  IconButton,
   ImageList,
   ImageListItem,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
 } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -17,6 +18,7 @@ import {
   useGetImagePaths,
 } from "./hooks";
 import { Category, isCategory } from "./types";
+import MenuIcon from "@mui/icons-material/Menu";
 
 function rangeFromOffset(offset: number): { from: number; to: number } {
   console.log({
@@ -34,6 +36,7 @@ function App() {
   const [offset, setOffset] = useState<number>(0);
   const [category, setCategory] = useState<Category | undefined>(undefined);
   const [board, setBoard] = useState<string | undefined>(undefined);
+  const [showMenu, setShowMenu] = useState<boolean>(false);
 
   const boards = useGetBoardsByCategory(category);
   const imagePaths = useGetImagePaths({ category, board });
@@ -57,6 +60,10 @@ function App() {
     };
   }, [onScroll]);
 
+  useEffect(() => {
+    setOffset(0);
+  }, [board, category]);
+
   if (imagePaths.error || boards.error) return <>An error has occurred</>;
   if (
     imagePaths.isLoading ||
@@ -68,7 +75,7 @@ function App() {
 
   return (
     <>
-      <MenuDrawer>
+      <MenuDrawer showMenu={showMenu} setShowMenu={setShowMenu}>
         <MenuCategorySelect
           selectedCategory={category}
           setCategory={setCategory}
@@ -106,11 +113,44 @@ function Images(props: { imagePaths: string[]; offset: number }) {
   );
 }
 
-function MenuDrawer(props: { children: ReactNode[] }) {
+function MenuDrawer(props: {
+  showMenu: boolean;
+  setShowMenu: (v: boolean) => void;
+  children: ReactNode[];
+}) {
   return (
-    <Drawer anchor="top" open={true}>
-      <Paper>{props.children}</Paper>
-    </Drawer>
+    <>
+      <IconButton
+        sx={{
+          position: "fixed",
+          top: 15,
+          right: 15,
+          "z-index": 10000000,
+          "background-color": "white",
+          "border-top-left-radius": "50% 20px",
+          "border-top-right-radius": "50% 20px",
+        }}
+        onClick={() => props.setShowMenu(!props.showMenu)}
+      >
+        <MenuIcon />
+      </IconButton>
+
+      <Drawer
+        anchor="top"
+        open={props.showMenu}
+        ModalProps={{ onBackdropClick: () => props.setShowMenu(false) }}
+      >
+        <Grid
+          container
+          spacing={0}
+          direction="row"
+          alignItems="center"
+          justifyContent="center"
+        >
+          {props.children}
+        </Grid>
+      </Drawer>
+    </>
   );
 }
 
@@ -119,7 +159,7 @@ function MenuCategorySelect(props: {
   setCategory: (category: Category | undefined) => void;
 }) {
   return (
-    <FormControl sx={{ m: 1, minWidth: 80 }}>
+    <FormControl sx={{ m: 1, minWidth: 150 }}>
       <InputLabel id="select-category-label">Category</InputLabel>
       <Select
         label="Selected category"
@@ -157,7 +197,7 @@ function MenuBoardSelect(props: {
   setBoard: (board: string | undefined) => void;
 }) {
   return (
-    <FormControl sx={{ m: 1, minWidth: 80 }}>
+    <FormControl sx={{ m: 1, minWidth: 150 }}>
       <InputLabel id="select-board-label">Selected board</InputLabel>
       <Select
         label="Selected board"
