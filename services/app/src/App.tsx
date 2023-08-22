@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import { ReactNode, useCallback, useEffect, useState } from "react";
-import { OFFSET_SIZE } from "./constants";
+import { OFFSET_SIZE, SCROLL_THRESHOLD } from "./constants";
 import {
   transformPathToImagePath,
   useGetBoardsByCategory,
@@ -21,11 +21,6 @@ import { Category, isCategory } from "./types";
 import MenuIcon from "@mui/icons-material/Menu";
 
 function rangeFromOffset(offset: number): { from: number; to: number } {
-  console.log({
-    from: Math.max(offset * OFFSET_SIZE - OFFSET_SIZE, 0),
-    to: (offset + 1) * OFFSET_SIZE,
-  });
-
   return {
     from: Math.max(offset * OFFSET_SIZE - OFFSET_SIZE, 0),
     to: (offset + 1) * OFFSET_SIZE,
@@ -43,7 +38,7 @@ function App() {
 
   const onScroll = useCallback(() => {
     const bottom =
-      Math.ceil(window.innerHeight + window.scrollY) >=
+      Math.ceil(window.innerHeight + window.scrollY) + SCROLL_THRESHOLD >=
       document.documentElement.scrollHeight;
 
     if (bottom) {
