@@ -1,7 +1,5 @@
 - fix oomkill for vision; try prometheus https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
 - make limit scraper env variables and increase if possible
 - yarn pnp for server
-- probably store model not just weights and load model only without building layers
-- add frontend
 - prevent cronjobs from overlapping
 - multiple build step DOckerfile
