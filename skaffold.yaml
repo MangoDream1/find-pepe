@@ -25,6 +25,7 @@ manifests:
     - k8s/common/namespace.yaml
     - k8s/common/pv.yaml
     - k8s/common/pvc.yaml
+    - k8s/common/ingress.yaml
     - k8s/app/deployment.yaml
     - k8s/app/service.yaml
     - k8s/scraper/cronjob.yaml
@@ -38,7 +39,7 @@ manifests:
         remoteChart: ingress-nginx
         repo: https://kubernetes.github.io/ingress-nginx
         namespace: ingress-nginx
-        createNamespace: true
+        createNamespace: false
         recreatePods: false
         skipBuildDependencies: false
         useHelmSecrets: false

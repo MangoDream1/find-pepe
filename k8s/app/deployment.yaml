@@ -27,7 +27,7 @@ spec:
           value: /api/
         ports:
         - name: http-app
-          containerPort: 5000
+          containerPort: 80
           protocol: TCP
         name: app
         volumeMounts:

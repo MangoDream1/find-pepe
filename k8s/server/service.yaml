@@ -7,7 +7,7 @@ spec:
   selector:
     app: server
   ports:
-    - name: http-server-main
+    - name: http-server
       protocol: TCP
       port: 5000
       targetPort: http-server

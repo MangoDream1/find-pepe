@@ -4,3 +4,10 @@ metadata:
   name: find-pepe
   labels:
     name: find-pepe
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    name: ingress-nginx
