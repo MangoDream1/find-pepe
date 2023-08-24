@@ -22,7 +22,7 @@ build:
         dockerfile: Dockerfile
 manifests:
   rawYaml:
-    - k8s/common/namespace.yaml
+    - k8s/common/namespaces.yaml
     - k8s/common/pv.yaml
     - k8s/common/pvc.yaml
     - k8s/common/ingress.yaml
