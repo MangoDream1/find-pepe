@@ -4,6 +4,7 @@ metadata:
   name: pepe-pv
   labels:
     type: local
+  namespace: find-pepe
 spec:
   storageClassName: manual
   capacity:

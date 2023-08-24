@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: find-pepe
   labels:
-    app: server
-  name: server
+    app: app
+  name: app
+  namespace: find-pepe
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: server
+      app: app
   strategy: {}
   template:
     metadata:
       labels:
-        app: server
+        app: app
     spec:
       containers:
-      - image: server:latest
+      - image: app:latest
         resources:
           limits:
-            memory: 500Mi
-            cpu: 100m
+            memory: 200Mi
+            cpu: 50m
         env:
-        - name: NODE_ENV
-          value: production
+        - name: REACT_APP_API_URL
+          value: /api/
         ports:
-        - name: http-server
+        - name: http-app
           containerPort: 5000
           protocol: TCP
-        name: server
+        name: app
         volumeMounts:
         - name: volume
           mountPath: /usr/src/app/public/

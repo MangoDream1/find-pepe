@@ -1,6 +1,7 @@
 # apiVersion: batch/v1
 # kind: CronJob
 # metadata:
+#   namespace: find-pepe
 #   name: scraper-cronjob
 #   labels:
 #     app: scraper
@@ -35,6 +36,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: find-pepe
   labels:
     app: scraper-deployment
   name: scraper
