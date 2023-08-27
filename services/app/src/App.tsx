@@ -32,6 +32,7 @@ function App() {
   const [category, setCategory] = useState<Category | undefined>(undefined);
   const [board, setBoard] = useState<string | undefined>(undefined);
   const [showMenu, setShowMenu] = useState<boolean>(false);
+  const [maxOffset, setMaxOffset] = useState<number>(0);
 
   const boards = useGetBoardsByCategory(category);
   const imagePaths = useGetImagePaths({ category, board });
@@ -41,10 +42,10 @@ function App() {
       Math.ceil(window.innerHeight + window.scrollY) + SCROLL_THRESHOLD >=
       document.documentElement.scrollHeight;
 
-    if (bottom) {
+    if (bottom && offset < maxOffset) {
       setOffset(offset + 1);
     }
-  }, [offset]);
+  }, [offset, maxOffset]);
 
   useEffect(() => {
     window.addEventListener("scroll", onScroll);
@@ -58,6 +59,13 @@ function App() {
   useEffect(() => {
     setOffset(0);
   }, [board, category]);
+
+  useEffect(() => {
+    if (!imagePaths.data) return;
+    setMaxOffset(
+      Math.max(Math.ceil(imagePaths.data.length / OFFSET_SIZE) - 1, 0)
+    );
+  }, [imagePaths.data]);
 
   if (imagePaths.error || boards.error) return <>An error has occurred</>;
   if (
@@ -209,11 +217,11 @@ function MenuBoardSelect(props: {
         }}
         value={props.selectedBoard || ""}
       >
-        <MenuItem value={""}>
+        <MenuItem key={"empty"} value={""}>
           <em>Deselect</em>
         </MenuItem>
         {props.boards.map((b) => (
-          <MenuItem value={b}>{`/${b}/`}</MenuItem>
+          <MenuItem key={b} value={b}>{`/${b}/`}</MenuItem>
         ))}
       </Select>
     </FormControl>
