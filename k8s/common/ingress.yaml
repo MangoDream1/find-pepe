@@ -17,12 +17,28 @@ spec:
               name: http-app
         path: /
         pathType: Prefix
+status:
+  loadBalancer: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-server
+  namespace: find-pepe
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
       - backend:
           service:
             name: server
             port:
               name: http-server
-        path: /api
+        path: /api(/|$)(.*)
         pathType: Prefix
 status:
   loadBalancer: {}

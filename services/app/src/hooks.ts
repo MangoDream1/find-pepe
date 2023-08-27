@@ -2,13 +2,12 @@ import { useQuery } from "react-query";
 import { API_URL } from "./constants";
 import { Category } from "./types";
 
-const BASE_URL = new URL("/", API_URL);
-
-const GET_BOARDS_URL = () => new URL("/boards", BASE_URL);
+const GET_BOARDS_URL = () => new URL(`${API_URL.toString()}/boards`);
 const GET_BOARDS_BY_CATEGORY_URL = (category: Category) =>
-  new URL(GET_BOARDS_URL().toString() + `/${category}`);
-const GET_IMAGE_PATHS_URL = () => new URL("/", BASE_URL);
-const GET_IMAGE_BY_PATH_URL = (path: string) => new URL(path, BASE_URL);
+  new URL(`${GET_BOARDS_URL()}/${category}`);
+const GET_IMAGE_PATHS_URL = () => new URL(API_URL);
+const GET_IMAGE_BY_PATH_URL = (path: string) =>
+  new URL(`${API_URL.toString()}/${path}`);
 
 function _handleNon200(response: Response) {
   throw new Error(

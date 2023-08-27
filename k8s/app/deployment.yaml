@@ -22,19 +22,9 @@ spec:
           limits:
             memory: 200Mi
             cpu: 50m
-        env:
-        - name: REACT_APP_API_URL
-          value: /api/
         ports:
         - name: http-app
           containerPort: 80
           protocol: TCP
         name: app
-        volumeMounts:
-        - name: volume
-          mountPath: /usr/src/app/public/
-      volumes:
-      - name: volume
-        persistentVolumeClaim:
-          claimName: pepe-pvc
 status: {}
