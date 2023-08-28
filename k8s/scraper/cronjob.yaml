@@ -25,6 +25,10 @@
 #             env:
 #             - name: VISION_API_URL
 #               value: http://vision:5000
+#             - name: HREF_LIMIT
+#               value: "10"
+#             - name: CLASSIFY_LIMIT
+#               value: "10"
 #             volumeMounts:
 #             - name: volume
 #               mountPath: /app/data/
@@ -61,6 +65,10 @@ spec:
         env:
         - name: VISION_API_URL
           value: http://vision:5000
+        - name: HREF_LIMIT
+          value: "10"
+        - name: CLASSIFY_LIMIT
+          value: "10"
         volumeMounts:
         - name: volume
           mountPath: /app/data/

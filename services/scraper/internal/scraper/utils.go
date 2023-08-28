@@ -3,6 +3,7 @@ package scraper
 import (
 	"bytes"
 	"fmt"
+	"go-find-pepe/internal/utils"
 	"io"
 	"math"
 	"mime/multipart"
@@ -28,21 +29,21 @@ func writeFile(path string, file io.ReadCloser) {
 
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, os.ModePerm)
-	check(err)
+	utils.Check(err)
 
 	f, err := os.Create(path)
-	check(err)
+	utils.Check(err)
 	defer f.Close()
 
 	_, err = io.Copy(f, file)
-	check(err)
+	utils.Check(err)
 
 	fmt.Printf("Successfully written file to %v\n", path)
 }
 
 func readFile(path string) io.ReadCloser {
 	file, err := os.Open(path)
-	check(err)
+	utils.Check(err)
 
 	return file
 }
@@ -53,7 +54,7 @@ func deleteFile(path string) {
 	}
 
 	err := os.Remove(path)
-	check(err)
+	utils.Check(err)
 	fmt.Printf("Successfully deleted file %v\n", path)
 }
 
@@ -88,7 +89,7 @@ func readNestedDir(dirPath string, output func(string)) {
 		defer wg.Done()
 
 		fs, err := os.ReadDir(dirPath)
-		check(err)
+		utils.Check(err)
 
 		for _, f := range fs {
 			path := filepath.Join(dirPath, f.Name())
@@ -118,7 +119,7 @@ func replaceDir(oldPath string, oldDir string, newDir string) string {
 
 func getProjectPath() string {
 	projectPath, err := os.Getwd()
-	check(err)
+	utils.Check(err)
 	return projectPath
 }
 
@@ -154,7 +155,7 @@ func stringShouldContainAllFilters(s string, filters []string) bool {
 
 func getHostname(rawurl string) string {
 	parsed, err := url.Parse(rawurl)
-	check(err)
+	utils.Check(err)
 	return parsed.Hostname()
 }
 
@@ -269,13 +270,13 @@ func createSingleFileMultiPart(key string, fileName string, file io.ReadCloser) 
 	writer := multipart.NewWriter(&b)
 
 	part, err := writer.CreateFormFile(key, fileName)
-	check(err)
+	utils.Check(err)
 
 	_, err = io.Copy(part, file)
-	check(err)
+	utils.Check(err)
 
 	err = writer.Close()
-	check(err)
+	utils.Check(err)
 
 	return &b, writer
 }
@@ -319,12 +320,6 @@ func (k *WaitGroupUtil) Wrapper(f func()) {
 		defer k.WaitGroup.Done()
 		f()
 	}()
-}
-
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
 }
 
 type Limiter struct {

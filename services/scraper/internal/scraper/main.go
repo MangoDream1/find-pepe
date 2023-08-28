@@ -2,7 +2,7 @@ package scraper
 
 import (
 	"fmt"
-	"os"
+	"go-find-pepe/internal/environment"
 	"sync"
 )
 
@@ -13,36 +13,40 @@ type Scraper struct {
 	done         *sync.Mutex
 }
 
-func NewScraper(allowedHrefSubstrings []string, requiredHrefSubstrings []string, allowedImageTypes []string) *Scraper {
+type NewScraperArguments struct {
+	environment.Environment
+	AllowedHrefSubstrings  []string
+	RequiredHrefSubstrings []string
+	AllowedImageTypes      []string
+}
+
+func NewScraper(arg *NewScraperArguments) *Scraper {
 	imageHrefs := make(chan string)
 
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 
-	visionApiUrl := os.Getenv("VISION_API_URL")
-	if visionApiUrl == "" {
-		panic("VISION_API_URL unset")
-	}
-
-	r := Request{url: fmt.Sprintf("%v/health", visionApiUrl), reuseConnection: false, method: "GET"}
+	r := Request{url: fmt.Sprintf("%v/health", arg.VisionApiUrl), reuseConnection: false, method: "GET"}
 	_, _, success := r.Do(1)
 	if !success {
 		panic("Failed to do VISION_API_URL health")
 	}
 
 	httpScraper := &HttpScraper{
-		allowedHrefSubstrings:  allowedHrefSubstrings,
-		requiredHrefSubstrings: requiredHrefSubstrings,
+		allowedHrefSubstrings:  arg.AllowedHrefSubstrings,
+		requiredHrefSubstrings: arg.RequiredHrefSubstrings,
 		wg:                     wg,
 		done:                   mutex,
 		imageHrefs:             imageHrefs,
 	}
 	imageScraper := &Image{
-		allowedImageTypes: allowedImageTypes,
-		visionApiUrl:      visionApiUrl,
+		allowedImageTypes: arg.AllowedImageTypes,
+		visionApiUrl:      arg.VisionApiUrl,
 		wg:                wg,
 		done:              mutex,
 		imageHrefs:        imageHrefs,
+		hrefLimit:         arg.HrefLimit,
+		classifyLimit:     arg.ClassifyLimit,
 	}
 
 	return &Scraper{

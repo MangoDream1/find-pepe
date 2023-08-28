@@ -1,5 +1,5 @@
 - fix oomkill for vision; try prometheus https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
-- make limit scraper env variables and increase if possible
+- make 0 limit unlimited
 - yarn pnp for server
 - prevent cronjobs from overlapping
 - multiple build step DOckerfile

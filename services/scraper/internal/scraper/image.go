@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-find-pepe/internal/utils"
 	"io"
 	"io/ioutil"
 	"path/filepath"
@@ -19,6 +20,8 @@ type Image struct {
 	wg                *sync.WaitGroup
 	done              *sync.Mutex
 	imageHrefs        chan string
+	hrefLimit         uint8
+	classifyLimit     uint8
 }
 
 type imageResponse struct {
@@ -44,8 +47,8 @@ func (s *Image) Start() {
 		})
 	})
 
-	hrefLimiter := NewLimiter(10)
-	classifyLimiter := NewLimiter(10)
+	hrefLimiter := NewLimiter(s.hrefLimit)
+	classifyLimiter := NewLimiter(s.classifyLimit)
 
 	go func() {
 		s.done.Lock()
@@ -192,11 +195,11 @@ func (s *Image) retrieveImageProbability(filePath string, file io.ReadCloser) (f
 		}
 
 		data, err := ioutil.ReadAll(response)
-		check(err)
+		utils.Check(err)
 
 		var vRes visionResponse
 		err = json.Unmarshal(data, &vRes)
-		check(err)
+		utils.Check(err)
 
 		return vRes.Score, nil
 	}

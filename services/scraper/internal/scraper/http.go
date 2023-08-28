@@ -3,6 +3,7 @@ package scraper
 import (
 	"errors"
 	"fmt"
+	"go-find-pepe/internal/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -123,13 +124,13 @@ func (s *HttpScraper) cleanup() {
 	path := filepath.Join(getProjectPath(), HtmlDir)
 	fmt.Printf("Beginning to delete %v directory\n", path)
 	err := os.RemoveAll(path)
-	check(err)
+	utils.Check(err)
 	fmt.Printf("Cleaned %v directory\n", path)
 }
 
 func (s *HttpScraper) findHtmlHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
-	check(err)
+	utils.Check(err)
 
 	doc.Find("a").Each(func(i int, selection *goquery.Selection) {
 		href, exists := selection.Attr("href")
@@ -162,7 +163,7 @@ func (s *HttpScraper) findHtmlHref(parentHref string, reader io.Reader, output c
 
 func (s *HttpScraper) findImageHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
-	check(err)
+	utils.Check(err)
 
 	fileSelection := doc.Find("div .file").Find("div .fileText")
 	fileSelection.Find("a").Each(func(i int, selection *goquery.Selection) {
