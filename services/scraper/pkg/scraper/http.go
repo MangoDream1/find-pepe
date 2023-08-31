@@ -13,7 +13,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type HttpScraper struct {
+type HtmlScraper struct {
 	allowedHrefSubstrings  []string
 	requiredHrefSubstrings []string
 	wg                     *sync.WaitGroup
@@ -21,12 +21,12 @@ type HttpScraper struct {
 	imageHrefs             chan string
 }
 
-type httpResponse struct {
+type htmlResponse struct {
 	href string
 	body *io.ReadCloser
 }
 
-func (s *HttpScraper) Start(startHref string) {
+func (s *HtmlScraper) Start(startHref string) {
 	hrefs := make(chan string)
 	toBeScrapped := make(chan string)
 
@@ -97,7 +97,7 @@ func (s *HttpScraper) Start(startHref string) {
 					if err.Error() == "not found" {
 						// store something so it does not get picked up again
 						file := io.NopCloser(strings.NewReader("404"))
-						response = &httpResponse{body: &file, href: href}
+						response = &htmlResponse{body: &file, href: href}
 					} else if err.Error() == "http unallowed source" || err.Error() == "html already exists" {
 						return
 					} else if err.Error() == "unsuccessful response" {
@@ -120,7 +120,7 @@ func (s *HttpScraper) Start(startHref string) {
 
 // cleanup html folder after all images and other html are found so the next pass
 // will find the rest
-func (s *HttpScraper) cleanup() {
+func (s *HtmlScraper) cleanup() {
 	path := filepath.Join(getProjectPath(), HtmlDir)
 	fmt.Printf("Beginning to delete %v directory\n", path)
 	err := os.RemoveAll(path)
@@ -128,7 +128,7 @@ func (s *HttpScraper) cleanup() {
 	fmt.Printf("Cleaned %v directory\n", path)
 }
 
-func (s *HttpScraper) findHtmlHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
+func (s *HtmlScraper) findHtmlHref(parentHref string, reader io.Reader, output chan string) *HtmlScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
@@ -161,7 +161,7 @@ func (s *HttpScraper) findHtmlHref(parentHref string, reader io.Reader, output c
 	return s
 }
 
-func (s *HttpScraper) findImageHref(parentHref string, reader io.Reader, output chan string) *HttpScraper {
+func (s *HtmlScraper) findImageHref(parentHref string, reader io.Reader, output chan string) *HtmlScraper {
 	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
@@ -192,7 +192,7 @@ func (s *HttpScraper) findImageHref(parentHref string, reader io.Reader, output 
 	return s
 }
 
-func (s *HttpScraper) getHttp(href string) (*httpResponse, error) {
+func (s *HtmlScraper) getHttp(href string) (*htmlResponse, error) {
 	if s.doesHtmlExist(href) {
 		return nil, errors.New("html already exists")
 	}
@@ -218,23 +218,23 @@ func (s *HttpScraper) getHttp(href string) (*httpResponse, error) {
 		return nil, errors.New("unsuccessful response")
 	}
 
-	return &httpResponse{body: &response, href: href}, nil
+	return &htmlResponse{body: &response, href: href}, nil
 }
 
-func (s *HttpScraper) storeHtml(r *httpResponse) string {
+func (s *HtmlScraper) storeHtml(r *htmlResponse) string {
 	fileName := s.transformUrlIntoFilename(r.href)
 	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
 	writeFile(path, *r.body)
 	return path
 }
 
-func (s *HttpScraper) doesHtmlExist(href string) bool {
+func (s *HtmlScraper) doesHtmlExist(href string) bool {
 	fileName := s.transformUrlIntoFilename(href)
 	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
 	return doesFileExist(path)
 }
 
-func (s *HttpScraper) transformUrlIntoFilename(href string) (fileName string) {
+func (s *HtmlScraper) transformUrlIntoFilename(href string) (fileName string) {
 	fileName = href
 	if fileName[len(fileName)-1] == '/' {
 		fileName = fileName[0 : len(fileName)-1]
@@ -243,7 +243,7 @@ func (s *HttpScraper) transformUrlIntoFilename(href string) (fileName string) {
 	return
 }
 
-func (s *HttpScraper) pathToUrl(path string) (url string) {
+func (s *HtmlScraper) pathToUrl(path string) (url string) {
 	storage := filepath.Join(getProjectPath(), HtmlDir) + "/"
 	url = strings.Replace(removeExtension(path), storage, "", 1) + "/"
 	url = strings.Replace(url, "https:/", "https://", 1)

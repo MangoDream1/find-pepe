@@ -7,7 +7,7 @@ import (
 )
 
 type Scraper struct {
-	httpScraper  *HttpScraper
+	htmlScraper  *HtmlScraper
 	imageScraper *Image
 	wg           *sync.WaitGroup
 	done         *sync.Mutex
@@ -32,7 +32,7 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 		panic("Failed to do VISION_API_URL health")
 	}
 
-	httpScraper := &HttpScraper{
+	html := &HtmlScraper{
 		allowedHrefSubstrings:  arg.AllowedHrefSubstrings,
 		requiredHrefSubstrings: arg.RequiredHrefSubstrings,
 		wg:                     wg,
@@ -51,7 +51,7 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 
 	return &Scraper{
 		imageScraper: imageScraper,
-		httpScraper:  httpScraper,
+		htmlScraper:  html,
 		wg:           wg,
 		done:         mutex,
 	}
@@ -66,7 +66,7 @@ func (s *Scraper) Start(startHref string) *Scraper {
 	s.wg.Add(2)
 
 	wgU.Wrapper(func() {
-		s.httpScraper.Start(startHref)
+		s.htmlScraper.Start(startHref)
 	})
 	wgU.Wrapper(s.imageScraper.Start)
 
