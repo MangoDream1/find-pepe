@@ -3,7 +3,7 @@ package scraper
 import (
 	"errors"
 	"fmt"
-	"go-find-pepe/internal/utils"
+	"go-find-pepe/pkg/utils"
 	"io"
 	"os"
 	"path/filepath"

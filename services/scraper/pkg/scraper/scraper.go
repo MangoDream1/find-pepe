@@ -2,7 +2,7 @@ package scraper
 
 import (
 	"fmt"
-	"go-find-pepe/internal/environment"
+	"go-find-pepe/pkg/environment"
 	"sync"
 )
 

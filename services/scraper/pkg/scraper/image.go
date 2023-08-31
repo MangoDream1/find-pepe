@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-find-pepe/internal/utils"
+	"go-find-pepe/pkg/utils"
 	"io"
 	"io/ioutil"
 	"path/filepath"

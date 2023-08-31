@@ -3,7 +3,7 @@ package scraper
 import (
 	"bytes"
 	"fmt"
-	"go-find-pepe/internal/utils"
+	"go-find-pepe/pkg/utils"
 	"io"
 	"math"
 	"mime/multipart"

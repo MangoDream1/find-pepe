@@ -1,9 +1,9 @@
 package main
 
 import (
-	"go-find-pepe/internal/environment"
-	"go-find-pepe/internal/scraper"
-	"go-find-pepe/internal/utils"
+	"go-find-pepe/pkg/environment"
+	"go-find-pepe/pkg/scraper"
+	"go-find-pepe/pkg/utils"
 )
 
 func main() {
