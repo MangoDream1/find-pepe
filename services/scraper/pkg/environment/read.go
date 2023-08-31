@@ -7,8 +7,25 @@ import (
 
 type Environment struct {
 	VisionApiUrl  string
-	HrefLimit     int8
+	ImageLimit    int8
+	HtmlLimit     int8
 	ClassifyLimit int8
+}
+
+func readIntFromEnv(env string) (*int64, error) {
+	iString := os.Getenv(env)
+	var i int64
+	i = 0
+
+	if iString != "" {
+		var err error
+		i, err = strconv.ParseInt(iString, 10, 8)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &i, nil
 }
 
 func ReadEnvironment() (*Environment, error) {
@@ -17,33 +34,25 @@ func ReadEnvironment() (*Environment, error) {
 		panic("VISION_API_URL unset")
 	}
 
-	hrefLimiterString := os.Getenv("HREF_LIMIT")
-	var hrefLimit int64
-	hrefLimit = 0
-
-	if hrefLimiterString != "" {
-		var err error
-		hrefLimit, err = strconv.ParseInt(hrefLimiterString, 10, 8)
-		if err != nil {
-			return nil, err
-		}
+	hrefLimit, err := readIntFromEnv("IMAGE_LIMIT")
+	if err != nil {
+		return nil, err
 	}
 
-	classifyLimiterString := os.Getenv("CLASSIFY_LIMIT")
-	var classifyLimit int64
-	classifyLimit = 0
+	classifyLimit, err := readIntFromEnv("CLASSIFY_LIMIT")
+	if err != nil {
+		return nil, err
+	}
 
-	if classifyLimiterString != "" {
-		var err error
-		classifyLimit, err = strconv.ParseInt(classifyLimiterString, 10, 8)
-		if err != nil {
-			return nil, err
-		}
+	htmlLimit, err := readIntFromEnv("HTML_LIMIT")
+	if err != nil {
+		return nil, err
 	}
 
 	return &Environment{
-		HrefLimit:     int8(hrefLimit),
-		ClassifyLimit: int8(classifyLimit),
+		ImageLimit:    int8(*hrefLimit),
+		ClassifyLimit: int8(*classifyLimit),
+		HtmlLimit:     int8(*htmlLimit),
 		VisionApiUrl:  visionApiUrl,
 	}, nil
 }

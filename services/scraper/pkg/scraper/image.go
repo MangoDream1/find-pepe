@@ -21,7 +21,7 @@ type Image struct {
 	wg                *sync.WaitGroup
 	done              *sync.Mutex
 	imageHrefs        chan string
-	hrefLimit         int8
+	imageLimit        int8
 	classifyLimit     int8
 }
 
@@ -48,7 +48,7 @@ func (s *Image) Start() {
 		})
 	})
 
-	hrefLimiter := limit.NewLimiter(s.hrefLimit)
+	hrefLimiter := limit.NewLimiter(s.imageLimit)
 	classifyLimiter := limit.NewLimiter(s.classifyLimit)
 
 	go func() {

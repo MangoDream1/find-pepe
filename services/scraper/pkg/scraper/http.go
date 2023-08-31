@@ -3,6 +3,7 @@ package scraper
 import (
 	"errors"
 	"fmt"
+	"go-find-pepe/pkg/limit"
 	"go-find-pepe/pkg/utils"
 	"io"
 	"os"
@@ -19,6 +20,7 @@ type HtmlScraper struct {
 	wg                     *sync.WaitGroup
 	done                   *sync.Mutex
 	imageHrefs             chan string
+	htmlLimit              int8
 }
 
 type htmlResponse struct {
@@ -65,6 +67,8 @@ func (s *HtmlScraper) Start(startHref string) {
 		done <- true
 	}()
 
+	htmlLimiter := limit.NewLimiter(s.htmlLimit)
+
 	s.wg.Done()
 	for {
 		select {
@@ -90,7 +94,9 @@ func (s *HtmlScraper) Start(startHref string) {
 			}()
 		case href := <-hrefs:
 			wgU.Wrapper(func() {
+				htmlLimiter.Add()
 				defer s.wg.Done()
+				defer htmlLimiter.Done()
 
 				response, err := s.getHttp(href)
 				if err != nil {

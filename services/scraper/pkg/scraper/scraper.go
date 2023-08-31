@@ -38,6 +38,7 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 		wg:                     wg,
 		done:                   mutex,
 		imageHrefs:             imageHrefs,
+		htmlLimit:              arg.HtmlLimit,
 	}
 	imageScraper := &Image{
 		allowedImageTypes: arg.AllowedImageTypes,
@@ -45,7 +46,7 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 		wg:                wg,
 		done:              mutex,
 		imageHrefs:        imageHrefs,
-		hrefLimit:         arg.HrefLimit,
+		imageLimit:        arg.ImageLimit,
 		classifyLimit:     arg.ClassifyLimit,
 	}
 
