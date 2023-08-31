@@ -7,8 +7,8 @@ import (
 
 type Environment struct {
 	VisionApiUrl  string
-	HrefLimit     uint8
-	ClassifyLimit uint8
+	HrefLimit     int8
+	ClassifyLimit int8
 }
 
 func ReadEnvironment() (*Environment, error) {
@@ -18,32 +18,32 @@ func ReadEnvironment() (*Environment, error) {
 	}
 
 	hrefLimiterString := os.Getenv("HREF_LIMIT")
-	var hrefLimit uint64
+	var hrefLimit int64
 	hrefLimit = 0
 
 	if hrefLimiterString != "" {
 		var err error
-		hrefLimit, err = strconv.ParseUint(hrefLimiterString, 10, 8)
+		hrefLimit, err = strconv.ParseInt(hrefLimiterString, 10, 8)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	classifyLimiterString := os.Getenv("CLASSIFY_LIMIT")
-	var classifyLimit uint64
+	var classifyLimit int64
 	classifyLimit = 0
 
 	if classifyLimiterString != "" {
 		var err error
-		classifyLimit, err = strconv.ParseUint(classifyLimiterString, 10, 8)
+		classifyLimit, err = strconv.ParseInt(classifyLimiterString, 10, 8)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &Environment{
-		HrefLimit:     uint8(hrefLimit),
-		ClassifyLimit: uint8(classifyLimit),
+		HrefLimit:     int8(hrefLimit),
+		ClassifyLimit: int8(classifyLimit),
 		VisionApiUrl:  visionApiUrl,
 	}, nil
 }

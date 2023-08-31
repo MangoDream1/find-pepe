@@ -8,9 +8,9 @@ type Limiter interface {
 }
 
 type limiter struct {
-	total   uint8
-	amount  uint8
-	waiting uint8
+	total   int8
+	amount  int8
+	waiting int8
 	done    chan bool
 	m       sync.Mutex
 }
@@ -41,9 +41,9 @@ type noopLimiter struct{}
 func (l *noopLimiter) Add()  {}
 func (l *noopLimiter) Done() {}
 
-func NewLimiter(total uint8) Limiter {
-	// 0 is uncapped
-	if total == 0 {
+func NewLimiter(total int8) Limiter {
+	// -1 is uncapped
+	if total == -1 {
 		return &noopLimiter{}
 	}
 

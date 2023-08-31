@@ -21,8 +21,8 @@ type Image struct {
 	wg                *sync.WaitGroup
 	done              *sync.Mutex
 	imageHrefs        chan string
-	hrefLimit         uint8
-	classifyLimit     uint8
+	hrefLimit         int8
+	classifyLimit     int8
 }
 
 type imageResponse struct {
