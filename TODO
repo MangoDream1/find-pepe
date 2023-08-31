@@ -1,4 +1,3 @@
 - fix oomkill for vision; try prometheus https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
 - yarn pnp for server
 - prevent cronjobs from overlapping
-- multiple build step DOckerfile
