@@ -8,7 +8,7 @@ type Limiter interface {
 }
 
 type limiter struct {
-	Total   uint8
+	total   uint8
 	amount  uint8
 	waiting uint8
 	done    chan bool
@@ -18,7 +18,7 @@ type limiter struct {
 func (l *limiter) Add() {
 	l.m.Lock()
 
-	if l.amount >= l.Total {
+	if l.amount >= l.total {
 		l.waiting += 1
 		<-l.done
 	}
@@ -48,7 +48,7 @@ func NewLimiter(total uint8) Limiter {
 	}
 
 	return &limiter{
-		Total: total,
+		total: total,
 		m:     sync.Mutex{},
 		done:  make(chan bool),
 	}
