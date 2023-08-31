@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-find-pepe/pkg/limiter"
+	"go-find-pepe/pkg/limit"
 	"go-find-pepe/pkg/utils"
 	"io"
 	"io/ioutil"
@@ -48,8 +48,8 @@ func (s *Image) Start() {
 		})
 	})
 
-	hrefLimiter := limiter.NewLimiter(s.hrefLimit)
-	classifyLimiter := limiter.NewLimiter(s.classifyLimit)
+	hrefLimiter := limit.NewLimiter(s.hrefLimit)
+	classifyLimiter := limit.NewLimiter(s.classifyLimit)
 
 	go func() {
 		s.done.Lock()
