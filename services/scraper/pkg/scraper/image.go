@@ -126,16 +126,15 @@ func (s *Image) classifyImageByPath(path string) {
 		panic(err)
 	}
 
+	var newPath string
 	if probability >= PepeThreshold {
-		newPath := replaceDir(path, UnclassifiedDir, PepeDir)
-		moveFile(path, newPath)
+		newPath = replaceDir(path, UnclassifiedDir, PepeDir)
 	} else if probability >= MaybeThreshold {
-		newPath := replaceDir(path, UnclassifiedDir, MaybeDir)
-		moveFile(path, newPath)
+		newPath = replaceDir(path, UnclassifiedDir, MaybeDir)
 	} else {
-		newPath := replaceDir(path, UnclassifiedDir, NonPepeDir)
-		moveFile(path, newPath)
+		newPath = replaceDir(path, UnclassifiedDir, NonPepeDir)
 	}
+	moveFile(path, newPath)
 }
 
 func (s *Image) storeImageResponse(request *imageResponse) string {
