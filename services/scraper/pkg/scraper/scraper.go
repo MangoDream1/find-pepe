@@ -15,7 +15,7 @@ type Scraper struct {
 }
 
 type NewScraperArguments struct {
-	environment.Environment
+	environment.ScraperEnv
 	AllowedHrefSubstrings  []string
 	RequiredHrefSubstrings []string
 	AllowedImageTypes      []string

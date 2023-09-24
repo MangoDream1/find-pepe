@@ -8,7 +8,10 @@ import (
 )
 
 func main() {
-	env, err := environment.ReadEnvironment()
+	scraperEnv, err := environment.ReadScraper()
+	utils.Check(err)
+
+	dbEnv, err := environment.ReadDb()
 	utils.Check(err)
 
 	var allowedHrefSubstrings = []string{"4channel.org"}
@@ -20,8 +23,8 @@ func main() {
 		AllowedHrefSubstrings:  allowedHrefSubstrings,
 		RequiredHrefSubstrings: requiredHrefSubstrings,
 		AllowedImageTypes:      allowedImageTypes,
-		Environment:            *env,
-		DbConnection:           db.Connect(),
+		ScraperEnv:             *scraperEnv,
+		DbConnection:           db.Connect(dbEnv),
 	})
 
 	scraper.Start("https://boards.4channel.org/g/")

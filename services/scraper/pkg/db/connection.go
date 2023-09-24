@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+	"go-find-pepe/pkg/environment"
 	"go-find-pepe/pkg/utils"
 
 	"gorm.io/driver/postgres"
@@ -11,8 +13,9 @@ type DbConnection struct {
 	db *gorm.DB
 }
 
-func Connect() *DbConnection {
-	dsn := "host=localhost user=postgres password=mysecretpassword dbname=postgres port=5432"
+func Connect(env *environment.DbEnv) *DbConnection {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%v", env.Host, env.User, env.Password, env.DbName, env.Port)
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	utils.Check(err)
 
