@@ -10,11 +10,12 @@ type NewHtml struct {
 	FilePath string `gorm:"index"`
 	Href     string
 	Board    string `gorm:"index"`
+	Parsed   bool
 }
 
 type html struct {
 	gorm.Model
-	NewImage
+	NewHtml
 }
 
 type htmlTx struct {
@@ -33,8 +34,8 @@ func (c *DbConnection) CreateHtmlTransaction() *htmlTx {
 	}
 }
 
-func (t *htmlTx) Create(new NewImage) uint {
-	img := &html{NewImage: new}
+func (t *htmlTx) Create(new NewHtml) uint {
+	img := &html{NewHtml: new}
 	t.tx.Create(&img)
 
 	return img.ID
@@ -65,13 +66,13 @@ func (t *htmlTx) ExistsByHref(href string) bool {
 }
 
 func (t *htmlTx) DeleteById(ID uint) (err error) {
-	r := t.tx.Delete(&html{gorm.Model{ID: ID}, NewImage{}})
+	r := t.tx.Delete(&html{gorm.Model{ID: ID}, NewHtml{}})
 	err = r.Error
 	return
 }
 
-func (t *htmlTx) UpdateClassificationById(ID uint, classification string) (err error) {
-	u := &html{gorm.Model{ID: ID}, NewImage{Classification: classification}}
+func (t *htmlTx) UpdateById(ID uint, update NewHtml) (err error) {
+	u := &html{gorm.Model{ID: ID}, update}
 	r := t.tx.Save(u)
 	err = r.Error
 	return

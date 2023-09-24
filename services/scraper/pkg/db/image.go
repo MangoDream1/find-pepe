@@ -11,6 +11,7 @@ type NewImage struct {
 	Classification string `gorm:"index"`
 	Href           string
 	Board          string `gorm:"index"`
+	Parsed         bool
 }
 
 type image struct {
@@ -71,8 +72,8 @@ func (t *imgTx) DeleteById(ID uint) (err error) {
 	return
 }
 
-func (t *imgTx) UpdateClassificationById(ID uint, classification string) (err error) {
-	u := &image{gorm.Model{ID: ID}, NewImage{Classification: classification}}
+func (t *imgTx) UpdateById(ID uint, update NewImage) (err error) {
+	u := &image{gorm.Model{ID: ID}, update}
 	r := t.tx.Save(u)
 	err = r.Error
 	return
