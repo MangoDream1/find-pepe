@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"go-find-pepe/pkg/db"
 	"go-find-pepe/pkg/environment"
 	"sync"
 )
@@ -18,9 +19,10 @@ type NewScraperArguments struct {
 	AllowedHrefSubstrings  []string
 	RequiredHrefSubstrings []string
 	AllowedImageTypes      []string
+	*db.DbConnection
 }
 
-func NewScraper(arg *NewScraperArguments) *Scraper {
+func NewScraper(arg NewScraperArguments) *Scraper {
 	imageHrefs := make(chan string)
 
 	mutex := &sync.Mutex{}
@@ -39,8 +41,9 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 		done:                   mutex,
 		imageHrefs:             imageHrefs,
 		htmlLimit:              arg.HtmlLimit,
+		db:                     arg.InitHtml(),
 	}
-	imageScraper := &Image{
+	image := &Image{
 		allowedImageTypes: arg.AllowedImageTypes,
 		visionApiUrl:      arg.VisionApiUrl,
 		wg:                wg,
@@ -48,10 +51,11 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 		imageHrefs:        imageHrefs,
 		imageLimit:        arg.ImageLimit,
 		classifyLimit:     arg.ClassifyLimit,
+		db:                arg.InitImage(),
 	}
 
 	return &Scraper{
-		imageScraper: imageScraper,
+		imageScraper: image,
 		htmlScraper:  html,
 		wg:           wg,
 		done:         mutex,

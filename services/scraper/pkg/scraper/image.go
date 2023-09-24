@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-find-pepe/pkg/db"
 	"go-find-pepe/pkg/limit"
 	"go-find-pepe/pkg/utils"
 	"io"
@@ -23,6 +24,7 @@ type Image struct {
 	imageHrefs        chan string
 	imageLimit        int8
 	classifyLimit     int8
+	db                *db.ImageDbConnection
 }
 
 type imageResponse struct {

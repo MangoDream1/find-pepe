@@ -24,7 +24,15 @@ type htmlTx struct {
 	Commit   func()
 }
 
-func (c *DbConnection) CreateHtmlTransaction() *htmlTx {
+type HtmlDbConnection struct {
+	db *gorm.DB
+}
+
+func (c *DbConnection) InitHtml() *HtmlDbConnection {
+	return &HtmlDbConnection{db: c.db}
+}
+
+func (c *HtmlDbConnection) CreateTransaction() *htmlTx {
 	tx := c.db.Begin()
 
 	return &htmlTx{

@@ -25,7 +25,15 @@ type imgTx struct {
 	Commit   func()
 }
 
-func (c *DbConnection) CreateImageTransaction() *imgTx {
+type ImageDbConnection struct {
+	db *gorm.DB
+}
+
+func (c *DbConnection) InitImage() *ImageDbConnection {
+	return &ImageDbConnection{db: c.db}
+}
+
+func (c *ImageDbConnection) CreateImageTransaction() *imgTx {
 	tx := c.db.Begin()
 
 	return &imgTx{

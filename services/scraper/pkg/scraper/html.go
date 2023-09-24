@@ -3,6 +3,7 @@ package scraper
 import (
 	"errors"
 	"fmt"
+	"go-find-pepe/pkg/db"
 	"go-find-pepe/pkg/limit"
 	"go-find-pepe/pkg/utils"
 	"io"
@@ -21,6 +22,7 @@ type HtmlScraper struct {
 	done                   *sync.Mutex
 	imageHrefs             chan string
 	htmlLimit              int8
+	db                     *db.HtmlDbConnection
 }
 
 type htmlResponse struct {
