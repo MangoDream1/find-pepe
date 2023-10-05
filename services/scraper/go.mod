@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/PuerkitoBio/goquery v1.7.1
+	github.com/google/uuid v1.3.1
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
 )
