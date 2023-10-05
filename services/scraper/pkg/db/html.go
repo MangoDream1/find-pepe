@@ -10,7 +10,6 @@ type NewHtml struct {
 	FilePath string `gorm:"index"`
 	Href     string
 	Board    string `gorm:"index"`
-	Parsed   bool
 }
 
 type Html struct {

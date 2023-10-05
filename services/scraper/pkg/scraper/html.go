@@ -239,7 +239,6 @@ func (s *HtmlScraper) storeHtml(r *htmlResponse) *db.Html {
 		FilePath: path,
 		Href:     r.href,
 		Board:    "",
-		Parsed:   false,
 	})
 
 	writeFile(path, *r.body)
