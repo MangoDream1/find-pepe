@@ -20,7 +20,7 @@ func Connect(env *environment.DbEnv) *DbConnection {
 	utils.Check(err)
 
 	db.AutoMigrate(&image{})
-	db.AutoMigrate(&html{})
+	db.AutoMigrate(&Html{})
 
 	return &DbConnection{db: db}
 }

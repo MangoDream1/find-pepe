@@ -32,16 +32,18 @@ type htmlResponse struct {
 
 func (s *HtmlScraper) Start(startHref string) {
 	hrefs := make(chan string)
-	toBeScrapped := make(chan string)
+	toBeScrapped := make(chan *db.Html)
 
 	done := make(chan bool)
 	wgU := WaitGroupUtil{WaitGroup: s.wg}
 
-	dirPath := filepath.Join(getProjectPath(), HtmlDir)
 	wgU.Wrapper(func() {
-		readNestedDir(dirPath, func(path string) {
+		tx := s.db.CreateTransaction()
+		defer tx.Deferral()
+
+		tx.FindAll(func(h *db.Html) {
 			s.wg.Add(1)
-			toBeScrapped <- path
+			toBeScrapped <- h
 		})
 	})
 
@@ -78,20 +80,19 @@ func (s *HtmlScraper) Start(startHref string) {
 			s.cleanup()
 			fmt.Println("HttpScraper exited")
 			return
-		case path := <-toBeScrapped:
+		case html := <-toBeScrapped:
 			func() {
 				defer s.wg.Done()
-				parentHref := s.pathToUrl(path)
+				wgU.Wrapper(func() {
+					file := readFile(html.FilePath)
+					defer file.Close()
+					s.findHtmlHref(html.Href, file, hrefs)
+				})
 
 				wgU.Wrapper(func() {
-					file := readFile(path)
+					file := readFile(html.FilePath)
 					defer file.Close()
-					s.findHtmlHref(parentHref, file, hrefs)
-				})
-				wgU.Wrapper(func() {
-					file := readFile(path)
-					defer file.Close()
-					s.findImageHref(parentHref, file, s.imageHrefs)
+					s.findImageHref(html.Href, file, s.imageHrefs)
 				})
 			}()
 		case href := <-hrefs:
@@ -229,32 +230,32 @@ func (s *HtmlScraper) getHttp(href string) (*htmlResponse, error) {
 	return &htmlResponse{body: &response, href: href}, nil
 }
 
-func (s *HtmlScraper) storeHtml(r *htmlResponse) string {
-	fileName := s.transformUrlIntoFilename(r.href)
-	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
+func (s *HtmlScraper) storeHtml(r *htmlResponse) *db.Html {
+	tx := s.db.CreateTransaction()
+	defer tx.Deferral()
+
+	path := s.newPath()
+	html := tx.Create(db.NewHtml{
+		FilePath: path,
+		Href:     r.href,
+		Board:    "",
+		Parsed:   false,
+	})
+
 	writeFile(path, *r.body)
-	return path
+	return html
 }
 
 func (s *HtmlScraper) doesHtmlExist(href string) bool {
-	fileName := s.transformUrlIntoFilename(href)
-	path := filepath.Join(getProjectPath(), HtmlDir, fileName)
-	return doesFileExist(path)
+	tx := s.db.CreateTransaction()
+	defer tx.Deferral()
+	return tx.ExistsByHref(href)
 }
 
-func (s *HtmlScraper) transformUrlIntoFilename(href string) (fileName string) {
-	fileName = href
-	if fileName[len(fileName)-1] == '/' {
-		fileName = fileName[0 : len(fileName)-1]
-	}
+func (s *HtmlScraper) newPath() (path string) {
+	fileName := createUniqueId()
 	fileName = addExtension(fileName, "html")
-	return
-}
 
-func (s *HtmlScraper) pathToUrl(path string) (url string) {
-	storage := filepath.Join(getProjectPath(), HtmlDir) + "/"
-	url = strings.Replace(removeExtension(path), storage, "", 1) + "/"
-	url = strings.Replace(url, "https:/", "https://", 1)
-
+	path = filepath.Join(getProjectPath(), HtmlDir, fileName)
 	return
 }

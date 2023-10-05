@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func writeFile(path string, file io.ReadCloser) {
@@ -125,12 +127,6 @@ func getProjectPath() string {
 
 func addExtension(id string, extension string) string {
 	return fmt.Sprintf("%s.%s", id, extension)
-}
-
-func removeExtension(filename string) string {
-	extension := filepath.Ext(filename)
-	n := strings.LastIndex(filename, extension)
-	return filename[:n]
 }
 
 func stringShouldContainOneFilter(s string, filters []string) bool {
@@ -320,4 +316,9 @@ func (k *WaitGroupUtil) Wrapper(f func()) {
 		defer k.WaitGroup.Done()
 		f()
 	}()
+}
+
+func createUniqueId() string {
+	uuid := uuid.New()
+	return uuid.String()
 }
