@@ -15,7 +15,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type HtmlScraper struct {
+type Html struct {
 	allowedHrefSubstrings  []string
 	requiredHrefSubstrings []string
 	wg                     *sync.WaitGroup
@@ -30,7 +30,7 @@ type htmlResponse struct {
 	body *io.ReadCloser
 }
 
-func (s *HtmlScraper) Start(startHref string) {
+func (s *Html) Start(startHref string) {
 	hrefs := make(chan string)
 	toBeScrapped := make(chan *db.Html)
 
@@ -129,7 +129,7 @@ func (s *HtmlScraper) Start(startHref string) {
 
 // cleanup html folder after all images and other html are found so the next pass
 // will find the rest
-func (s *HtmlScraper) cleanup() {
+func (s *Html) cleanup() {
 	path := filepath.Join(getProjectPath(), HtmlDir)
 	fmt.Printf("Beginning to delete %v directory\n", path)
 	err := os.RemoveAll(path)
@@ -137,7 +137,7 @@ func (s *HtmlScraper) cleanup() {
 	fmt.Printf("Cleaned %v directory\n", path)
 }
 
-func (s *HtmlScraper) findHtmlHref(parentHref string, reader io.Reader, output chan string) *HtmlScraper {
+func (s *Html) findHtmlHref(parentHref string, reader io.Reader, output chan string) *Html {
 	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
@@ -170,7 +170,7 @@ func (s *HtmlScraper) findHtmlHref(parentHref string, reader io.Reader, output c
 	return s
 }
 
-func (s *HtmlScraper) findImageHref(parentHref string, reader io.Reader, output chan string) *HtmlScraper {
+func (s *Html) findImageHref(parentHref string, reader io.Reader, output chan string) *Html {
 	doc, err := goquery.NewDocumentFromReader(reader)
 	utils.Check(err)
 
@@ -201,7 +201,7 @@ func (s *HtmlScraper) findImageHref(parentHref string, reader io.Reader, output 
 	return s
 }
 
-func (s *HtmlScraper) getHttp(href string) (*htmlResponse, error) {
+func (s *Html) getHttp(href string) (*htmlResponse, error) {
 	if s.doesHtmlExist(href) {
 		return nil, errors.New("html already exists")
 	}
@@ -230,7 +230,7 @@ func (s *HtmlScraper) getHttp(href string) (*htmlResponse, error) {
 	return &htmlResponse{body: &response, href: href}, nil
 }
 
-func (s *HtmlScraper) storeHtml(r *htmlResponse) *db.Html {
+func (s *Html) storeHtml(r *htmlResponse) *db.Html {
 	tx := s.db.CreateTransaction()
 	defer tx.Deferral()
 
@@ -245,13 +245,13 @@ func (s *HtmlScraper) storeHtml(r *htmlResponse) *db.Html {
 	return html
 }
 
-func (s *HtmlScraper) doesHtmlExist(href string) bool {
+func (s *Html) doesHtmlExist(href string) bool {
 	tx := s.db.CreateTransaction()
 	defer tx.Deferral()
 	return tx.ExistsByHref(href)
 }
 
-func (s *HtmlScraper) newPath() (path string) {
+func (s *Html) newPath() (path string) {
 	fileName := createUniqueId()
 	fileName = addExtension(fileName, "html")
 
