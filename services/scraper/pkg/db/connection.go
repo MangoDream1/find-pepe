@@ -19,7 +19,7 @@ func Connect(env *environment.DbEnv) *DbConnection {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	utils.Check(err)
 
-	db.AutoMigrate(&image{})
+	db.AutoMigrate(&Image{})
 	db.AutoMigrate(&Html{})
 
 	return &DbConnection{db: db}

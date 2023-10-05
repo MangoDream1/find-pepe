@@ -4,17 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-find-pepe/pkg/constants"
 	"go-find-pepe/pkg/db"
 	"go-find-pepe/pkg/limit"
 	"go-find-pepe/pkg/utils"
 	"io"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
 	"sync"
 )
-
-var ImageFileDirectories = [5]string{MaybeDir, PepeDir, NonPepeDir, UnclassifiedDir, FaultyDir}
 
 type Image struct {
 	allowedImageTypes []string
@@ -28,8 +26,8 @@ type Image struct {
 }
 
 type imageResponse struct {
-	fileName string
-	body     *io.ReadCloser
+	href string
+	body *io.ReadCloser
 }
 
 type visionResponse struct {
@@ -37,16 +35,18 @@ type visionResponse struct {
 }
 
 func (s *Image) Start() {
-	toBeClassified := make(chan string)
+	toBeClassified := make(chan *db.Image)
 
 	done := make(chan bool)
 	wgU := WaitGroupUtil{WaitGroup: s.wg}
 
 	wgU.Wrapper(func() {
-		dirPath := filepath.Join(getProjectPath(), UnclassifiedDir)
-		readNestedDir(dirPath, func(path string) {
+		tx := s.db.CreateImageTransaction()
+		defer tx.Deferral()
+
+		tx.FindAllUnclassified(func(i *db.Image) {
 			s.wg.Add(1)
-			toBeClassified <- path
+			toBeClassified <- i
 		})
 	})
 
@@ -64,23 +64,12 @@ func (s *Image) Start() {
 		case <-done:
 			fmt.Println("ImageScraper exited")
 			return
-		case path := <-toBeClassified:
+		case img := <-toBeClassified:
 			wgU.Wrapper(func() {
 				classifyLimiter.Add()
 				defer s.wg.Done()
 				defer classifyLimiter.Done()
-				defer func() {
-					if err := recover(); err != nil {
-						if strings.Contains(err.(error).Error(), "no such file or directory") {
-							fmt.Printf("Image %v does not exist anymore; ignoring\n", path)
-							return
-						} else {
-							panic(err)
-						}
-					}
-				}()
-
-				s.classifyImageByPath(path)
+				s.classifyImage(img)
 			})
 
 		case href := <-s.imageHrefs:
@@ -111,39 +100,53 @@ func (s *Image) Start() {
 	}
 }
 
-func (s *Image) classifyImageByPath(path string) {
-	file := readFile(path)
+func (s *Image) classifyImage(img *db.Image) {
+	file := readFile(img.FilePath)
 	defer file.Close()
 
-	probability, err := s.retrieveImageProbability(path, file)
+	probability, err := s.retrieveImageProbability(img.FilePath, file)
 
 	if err != nil {
 		if err.Error() == "faulty file" {
-			fmt.Printf("Unsuccessful POST %v; moved image %v\n", s.visionApiUrl, path)
-			newPath := replaceDir(path, UnclassifiedDir, FaultyDir)
-			moveFile(path, newPath)
+			fmt.Printf("Unsuccessful POST %v; faulty image %v\n", s.visionApiUrl, img.ID)
+			s.updateClassificationById(img.ID, constants.CATEGORY_FAULTY, 0)
 			return
+		} else {
+			panic(err)
 		}
-
-		panic(err)
 	}
 
-	var newPath string
 	if probability >= PepeThreshold {
-		newPath = replaceDir(path, UnclassifiedDir, PepeDir)
+		s.updateClassificationById(img.ID, constants.CATEGORY_PEPE, probability)
 	} else if probability >= MaybeThreshold {
-		newPath = replaceDir(path, UnclassifiedDir, MaybeDir)
+		s.updateClassificationById(img.ID, constants.CATEGORY_MAYBE, probability)
 	} else {
-		newPath = replaceDir(path, UnclassifiedDir, NonPepeDir)
+		s.updateClassificationById(img.ID, constants.CATEGORY_NON_PEPE, probability)
 	}
-	moveFile(path, newPath)
 }
 
-func (s *Image) storeImageResponse(request *imageResponse) string {
-	path := filepath.Join(getProjectPath(), UnclassifiedDir, request.fileName)
+func (s *Image) updateClassificationById(id uint, category string, classification float32) {
+	tx := s.db.CreateImageTransaction()
+	tx.Deferral()
+	tx.UpdateById(id, db.NewImage{Classification: classification, Category: category})
+}
 
-	writeFile(path, *request.body)
-	return path
+func (s *Image) storeImageResponse(r *imageResponse) *db.Image {
+	tx := s.db.CreateImageTransaction()
+	defer tx.Deferral()
+
+	ext := getExtension(r.href)
+	path := s.newPath(ext)
+
+	i := tx.Create(db.NewImage{
+		FilePath: path,
+		Category: constants.CATEGORY_UNCLASSIFIED,
+		Href:     r.href,
+		Board:    "",
+	})
+
+	writeFile(path, *r.body)
+	return i
 }
 
 func (s *Image) getImage(href string) (*imageResponse, error) {
@@ -154,8 +157,7 @@ func (s *Image) getImage(href string) (*imageResponse, error) {
 		return nil, errors.New("image type not allowed")
 	}
 
-	fileName := s.transformUrlIntoFilename(cleanedHref)
-	if s.doesImageExist(fileName) {
+	if s.doesImageExist(cleanedHref) {
 		return nil, errors.New("image already exists")
 	}
 
@@ -166,7 +168,7 @@ func (s *Image) getImage(href string) (*imageResponse, error) {
 		return nil, errors.New("unsuccessful response")
 	}
 
-	return &imageResponse{fileName: fileName, body: &response}, nil
+	return &imageResponse{href: href, body: &response}, nil
 }
 
 func (s *Image) retrieveImageProbability(filePath string, file io.ReadCloser) (float32, error) {
@@ -209,18 +211,15 @@ func (s *Image) retrieveImageProbability(filePath string, file io.ReadCloser) (f
 	return do(1)
 }
 
-func (s *Image) doesImageExist(fileName string) bool {
-	for _, dir := range ImageFileDirectories {
-		path := filepath.Join(getProjectPath(), dir, fileName)
-		if !doesFileExist(path) {
-			return false
-		}
-	}
-
-	return true
+func (s *Image) doesImageExist(href string) bool {
+	tx := s.db.CreateImageTransaction()
+	defer tx.Deferral()
+	return tx.ExistsByHref(href)
 }
 
-func (s *Image) transformUrlIntoFilename(url string) string {
-	p := strings.Split(url, `/`)
-	return strings.Join(p[2:], `/`)
+func (s *Image) newPath(extension string) (path string) {
+	fileName := createUniqueId()
+	fileName = addExtension(fileName, extension)
+	path = filepath.Join(getProjectPath(), ImageDir, fileName)
+	return
 }

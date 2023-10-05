@@ -2,19 +2,20 @@ package db
 
 import (
 	"errors"
+	"go-find-pepe/pkg/constants"
 
 	"gorm.io/gorm"
 )
 
 type NewImage struct {
 	FilePath       string `gorm:"index"`
-	Classification string `gorm:"index"`
+	Category       string `gorm:"index"`
+	Classification float32
 	Href           string
 	Board          string `gorm:"index"`
-	Parsed         bool
 }
 
-type image struct {
+type Image struct {
 	gorm.Model
 	NewImage
 }
@@ -23,6 +24,7 @@ type imgTx struct {
 	tx       *gorm.DB
 	Rollback func()
 	Commit   func()
+	Deferral func()
 }
 
 type ImageDbConnection struct {
@@ -40,18 +42,24 @@ func (c *ImageDbConnection) CreateImageTransaction() *imgTx {
 		tx:       tx,
 		Rollback: func() { tx.Rollback() },
 		Commit:   func() { tx.Commit() },
+		Deferral: func() {
+			if err := recover(); err != nil {
+				tx.Rollback()
+			} else {
+				tx.Commit()
+			}
+		},
 	}
 }
 
-func (t *imgTx) Create(new NewImage) uint {
-	img := &image{NewImage: new}
+func (t *imgTx) Create(new NewImage) *Image {
+	img := &Image{NewImage: new}
 	t.tx.Create(&img)
-
-	return img.ID
+	return img
 }
 
-func (t *imgTx) FindOneByID(ID uint) (i *image, err error) {
-	i = &image{}
+func (t *imgTx) FindOneByID(ID uint) (i *Image, err error) {
+	i = &Image{}
 	r := t.tx.First(i, ID)
 	err = r.Error
 	return
@@ -62,8 +70,8 @@ func (t *imgTx) ExistsByID(ID uint) bool {
 	return !errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (t *imgTx) FindOneByHref(href string) (i *image, err error) {
-	i = &image{}
+func (t *imgTx) FindOneByHref(href string) (i *Image, err error) {
+	i = &Image{}
 	r := t.tx.First(i, "href = ?", href)
 	err = r.Error
 	return
@@ -75,14 +83,30 @@ func (t *imgTx) ExistsByHref(href string) bool {
 }
 
 func (t *imgTx) DeleteById(ID uint) (err error) {
-	r := t.tx.Delete(&image{gorm.Model{ID: ID}, NewImage{}})
+	r := t.tx.Delete(&Image{gorm.Model{ID: ID}, NewImage{}})
 	err = r.Error
 	return
 }
 
 func (t *imgTx) UpdateById(ID uint, update NewImage) (err error) {
-	u := &image{gorm.Model{ID: ID}, update}
+	u := &Image{gorm.Model{ID: ID}, update}
 	r := t.tx.Save(u)
 	err = r.Error
+	return
+}
+
+func (t *imgTx) FindAllUnclassified(cb func(*Image)) (err error) {
+	rows, err := t.tx.Where("category = ?", constants.CATEGORY_UNCLASSIFIED).Rows()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var img Image
+		t.tx.ScanRows(rows, &img)
+		cb(&img)
+	}
+
 	return
 }

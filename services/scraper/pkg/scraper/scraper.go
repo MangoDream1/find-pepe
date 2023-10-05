@@ -8,7 +8,7 @@ import (
 )
 
 type Scraper struct {
-	htmlScraper  *HtmlScraper
+	htmlScraper  *Html
 	imageScraper *Image
 	wg           *sync.WaitGroup
 	done         *sync.Mutex
@@ -34,7 +34,7 @@ func NewScraper(arg NewScraperArguments) *Scraper {
 		panic("Failed to do VISION_API_URL health")
 	}
 
-	html := &HtmlScraper{
+	html := &Html{
 		allowedHrefSubstrings:  arg.AllowedHrefSubstrings,
 		requiredHrefSubstrings: arg.RequiredHrefSubstrings,
 		wg:                     wg,

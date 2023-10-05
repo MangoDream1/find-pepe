@@ -50,75 +50,6 @@ func readFile(path string) io.ReadCloser {
 	return file
 }
 
-func deleteFile(path string) {
-	if !doesFileExist(path) {
-		return
-	}
-
-	err := os.Remove(path)
-	utils.Check(err)
-	fmt.Printf("Successfully deleted file %v\n", path)
-}
-
-func moveFile(oldPath string, newPath string) {
-	file := readFile(oldPath)
-	defer file.Close()
-
-	writeFile(newPath, file)
-	deleteFile(oldPath)
-}
-
-func doesFileExist(path string) bool {
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-// readNestedDir finds all nested files within the original dirPath and puts the path into output
-func readNestedDir(dirPath string, output func(string)) {
-	if !doesFileExist(dirPath) {
-		fmt.Printf("Stopped reading nested directory; %v does not exists\n", dirPath)
-		return
-	}
-
-	var wg sync.WaitGroup
-
-	var inner func(dirPath string)
-	inner = func(dirPath string) {
-		defer wg.Done()
-
-		fs, err := os.ReadDir(dirPath)
-		utils.Check(err)
-
-		for _, f := range fs {
-			path := filepath.Join(dirPath, f.Name())
-			if f.IsDir() {
-				wg.Add(1)
-				go inner(path)
-			} else {
-				output(path)
-			}
-		}
-	}
-
-	wg.Add(1)
-	go inner(dirPath)
-	wg.Wait()
-}
-
-func replaceDir(oldPath string, oldDir string, newDir string) string {
-	newPath := strings.Replace(oldPath, oldDir, newDir, 1)
-
-	if newPath == oldPath {
-		panic(fmt.Errorf("failed to replaceDir; oldDir %v not in oldPath %v", newDir, oldPath))
-	}
-
-	return newPath
-}
-
 func getProjectPath() string {
 	projectPath, err := os.Getwd()
 	utils.Check(err)
@@ -127,6 +58,11 @@ func getProjectPath() string {
 
 func addExtension(id string, extension string) string {
 	return fmt.Sprintf("%s.%s", id, extension)
+}
+
+func getExtension(filename string) (extension string) {
+	extension = filepath.Ext(filename)
+	return
 }
 
 func stringShouldContainOneFilter(s string, filters []string) bool {
