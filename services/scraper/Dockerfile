@@ -9,6 +9,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o scrape
 
 FROM golang:1.18
 
+WORKDIR /app
 COPY --from=BUILD /app/scrape /app/scrape
 
 CMD ["/app/scrape"]
