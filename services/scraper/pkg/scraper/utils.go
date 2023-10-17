@@ -61,7 +61,7 @@ func addExtension(id string, extension string) string {
 }
 
 func getExtension(filename string) (extension string) {
-	extension = filepath.Ext(filename)
+	extension = filepath.Ext(filename)[1:]
 	return
 }
 
