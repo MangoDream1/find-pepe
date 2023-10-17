@@ -57,7 +57,7 @@ func (t *htmlTx) Create(new NewHtml) *Html {
 
 func (t *htmlTx) FindOneByID(ID uint) (i *Html, err error) {
 	i = &Html{}
-	r := t.tx.First(i, ID)
+	r := t.tx.Take(i, ID)
 	err = r.Error
 	return
 }
@@ -69,7 +69,7 @@ func (t *htmlTx) ExistsByID(ID uint) bool {
 
 func (t *htmlTx) FindOneByHref(href string) (i *Html, err error) {
 	i = &Html{}
-	r := t.tx.First(i, "href = ?", href)
+	r := t.tx.Take(i, "href = ?", href)
 	err = r.Error
 	return
 }
@@ -93,7 +93,7 @@ func (t *htmlTx) UpdateById(ID uint, update NewHtml) (err error) {
 }
 
 func (t *htmlTx) FindAll(cb func(*Html)) (err error) {
-	rows, err := t.tx.Rows()
+	rows, err := t.tx.Model(&Html{}).Rows()
 	if err != nil {
 		return
 	}
@@ -106,4 +106,8 @@ func (t *htmlTx) FindAll(cb func(*Html)) (err error) {
 	}
 
 	return
+}
+
+func (t *htmlTx) DeleteAll() {
+	t.tx.Exec("DELETE FROM htmls")
 }

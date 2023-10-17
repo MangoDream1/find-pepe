@@ -7,7 +7,6 @@ import (
 	"go-find-pepe/pkg/limit"
 	"go-find-pepe/pkg/utils"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -127,14 +126,13 @@ func (s *Html) Start(startHref string) {
 	}
 }
 
-// cleanup html folder after all images and other html are found so the next pass
-// will find the rest
 func (s *Html) cleanup() {
-	path := filepath.Join(getProjectPath(), HtmlDir)
-	fmt.Printf("Beginning to delete %v directory\n", path)
-	err := os.RemoveAll(path)
-	utils.Check(err)
-	fmt.Printf("Cleaned %v directory\n", path)
+	fmt.Printf("Beginning to delete html database\n")
+	tx := s.db.CreateTransaction()
+	tx.DeleteAll()
+	defer tx.Commit()
+
+	fmt.Printf("Cleaned html database\n")
 }
 
 func (s *Html) findHtmlHref(parentHref string, reader io.Reader, output chan string) *Html {
