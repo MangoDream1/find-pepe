@@ -116,19 +116,24 @@ func (s *Image) classifyImage(img *db.Image) {
 		}
 	}
 
+	var category string
 	if probability >= PepeThreshold {
-		s.updateClassificationById(img.ID, constants.CATEGORY_PEPE, probability)
+		category = constants.CATEGORY_PEPE
 	} else if probability >= MaybeThreshold {
-		s.updateClassificationById(img.ID, constants.CATEGORY_MAYBE, probability)
+		category = constants.CATEGORY_MAYBE
 	} else {
-		s.updateClassificationById(img.ID, constants.CATEGORY_NON_PEPE, probability)
+		category = constants.CATEGORY_NON_PEPE
 	}
+
+	s.updateClassificationById(img.ID, category, probability)
+	fmt.Printf("Successfully formatted %v; category: %v; probability: %v \n", img.ID, category, probability)
 }
 
 func (s *Image) updateClassificationById(id uint, category string, classification float32) {
 	tx := s.db.CreateImageTransaction()
-	tx.Deferral()
-	tx.UpdateById(id, db.NewImage{Classification: classification, Category: category})
+	defer tx.Deferral()
+	err := tx.UpdateById(id, db.NewImage{Classification: classification, Category: category})
+	utils.Check(err)
 }
 
 func (s *Image) storeImageResponse(r *imageResponse) *db.Image {
