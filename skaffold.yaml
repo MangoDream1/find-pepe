@@ -51,7 +51,6 @@ manifests:
         setValues:
           primary.persistence.existingClaim: pepe-pvc
           primary.persistence.subPath: db
-          primary.persistence.mountPath: /bitnami/postgresql
           global.postgresql.auth.postgresPassword: "test"
           global.postgresql.auth.username: "admin"
           global.postgresql.auth.password: "test"
