@@ -72,7 +72,13 @@ spec:
         - name: CLASSIFY_LIMIT
           value: "50"
         - name: HTML_LIMIT
-          value: "100"
+          value: "1"
+        - name: "POSTGRES_HOST"
+          value: "postgresql"
+        - name: "POSTGRES_PASSWORD"
+          value: "test"
+        - name: "POSTGRES_USER"
+          value: "admin"
         volumeMounts:
         - name: volume
           mountPath: /app/data/
