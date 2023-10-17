@@ -60,7 +60,7 @@ func (t *imgTx) Create(new NewImage) *Image {
 
 func (t *imgTx) FindOneByID(ID uint) (i *Image, err error) {
 	i = &Image{}
-	r := t.tx.First(i, ID)
+	r := t.tx.Take(i, ID)
 	err = r.Error
 	return
 }
@@ -72,7 +72,7 @@ func (t *imgTx) ExistsByID(ID uint) bool {
 
 func (t *imgTx) FindOneByHref(href string) (i *Image, err error) {
 	i = &Image{}
-	r := t.tx.First(i, "href = ?", href)
+	r := t.tx.Take(i, "href = ?", href)
 	err = r.Error
 	return
 }
@@ -96,7 +96,7 @@ func (t *imgTx) UpdateById(ID uint, update NewImage) (err error) {
 }
 
 func (t *imgTx) FindAllUnclassified(cb func(*Image)) (err error) {
-	rows, err := t.tx.Where("category = ?", constants.CATEGORY_UNCLASSIFIED).Rows()
+	rows, err := t.tx.Model(&Image{}).Where("category = ?", constants.CATEGORY_UNCLASSIFIED).Rows()
 	if err != nil {
 		return
 	}
