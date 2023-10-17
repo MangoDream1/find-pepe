@@ -89,8 +89,13 @@ func (t *imgTx) DeleteById(ID uint) (err error) {
 }
 
 func (t *imgTx) UpdateById(ID uint, update NewImage) (err error) {
-	u := &Image{gorm.Model{ID: ID}, update}
-	r := t.tx.Save(u)
+	r := t.tx.Model(&Image{}).Where(&Image{
+		Model:    gorm.Model{ID: ID},
+		NewImage: NewImage{},
+	}).Updates(&Image{
+		Model:    gorm.Model{},
+		NewImage: update,
+	})
 	err = r.Error
 	return
 }

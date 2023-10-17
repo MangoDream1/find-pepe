@@ -85,13 +85,6 @@ func (t *htmlTx) DeleteById(ID uint) (err error) {
 	return
 }
 
-func (t *htmlTx) UpdateById(ID uint, update NewHtml) (err error) {
-	u := &Html{gorm.Model{ID: ID}, update}
-	r := t.tx.Save(u)
-	err = r.Error
-	return
-}
-
 func (t *htmlTx) FindAll(cb func(*Html)) (err error) {
 	rows, err := t.tx.Model(&Html{}).Rows()
 	if err != nil {
