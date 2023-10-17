@@ -8,10 +8,10 @@ import (
 )
 
 type NewImage struct {
-	FilePath       string `gorm:"index"`
+	FilePath       string
 	Category       string `gorm:"index"`
 	Classification float32
-	Href           string
+	Href           string `gorm:"index"`
 	Board          string `gorm:"index"`
 }
 
@@ -78,8 +78,14 @@ func (t *imgTx) FindOneByHref(href string) (i *Image, err error) {
 }
 
 func (t *imgTx) ExistsByHref(href string) bool {
-	_, err := t.FindOneByHref(href)
-	return !errors.Is(err, gorm.ErrRecordNotFound)
+	var result struct {
+		Found bool
+	}
+
+	t.tx.Raw(`SELECT EXISTS(SELECT 1 FROM images WHERE "href" = ? AND "deleted_at" IS NULL) AS found`,
+		href).Scan(&result)
+
+	return result.Found
 }
 
 func (t *imgTx) DeleteById(ID uint) (err error) {

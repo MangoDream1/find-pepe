@@ -7,8 +7,8 @@ import (
 )
 
 type NewHtml struct {
-	FilePath string `gorm:"index"`
-	Href     string
+	FilePath string
+	Href     string `gorm:"index"`
 	Board    string `gorm:"index"`
 }
 
@@ -75,8 +75,14 @@ func (t *htmlTx) FindOneByHref(href string) (i *Html, err error) {
 }
 
 func (t *htmlTx) ExistsByHref(href string) bool {
-	_, err := t.FindOneByHref(href)
-	return !errors.Is(err, gorm.ErrRecordNotFound)
+	var result struct {
+		Found bool
+	}
+
+	t.tx.Raw(`SELECT EXISTS(SELECT 1 FROM htmls WHERE "href" = ? AND "deleted_at" IS NULL) AS found`,
+		href).Scan(&result)
+
+	return result.Found
 }
 
 func (t *htmlTx) DeleteById(ID uint) (err error) {
