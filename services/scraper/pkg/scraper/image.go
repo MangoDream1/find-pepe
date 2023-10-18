@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"sync"
 )
 
@@ -147,7 +148,7 @@ func (s *Image) storeImageResponse(r *imageResponse) *db.Image {
 		FilePath: path,
 		Category: constants.CATEGORY_UNCLASSIFIED,
 		Href:     r.href,
-		Board:    "",
+		Board:    s.extractBoard(r.href),
 	})
 
 	writeFile(path, *r.body)
@@ -227,4 +228,9 @@ func (s *Image) newPath(extension string) (path string) {
 	fileName = addExtension(fileName, extension)
 	path = filepath.Join(getProjectPath(), ImageDir, fileName)
 	return
+}
+
+func (s *Image) extractBoard(href string) string {
+	re := regexp.MustCompile(`org/(.+)/`)
+	return re.FindStringSubmatch(href)[1]
 }
