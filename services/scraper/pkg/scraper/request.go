@@ -9,81 +9,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
-	"runtime/debug"
-	"strings"
-	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
-
-func writeFile(path string, file io.ReadCloser) {
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Printf("An error has occurred while trying to store an file with name: %v \n", path)
-			panic(err)
-		}
-	}()
-
-	fmt.Printf("Writing file to %v\n", path)
-
-	dir := filepath.Dir(path)
-	err := os.MkdirAll(dir, os.ModePerm)
-	utils.Check(err)
-
-	f, err := os.Create(path)
-	utils.Check(err)
-	defer f.Close()
-
-	_, err = io.Copy(f, file)
-	utils.Check(err)
-
-	fmt.Printf("Successfully written file to %v\n", path)
-}
-
-func readFile(path string) io.ReadCloser {
-	file, err := os.Open(path)
-	utils.Check(err)
-
-	return file
-}
-
-func getProjectPath() string {
-	projectPath, err := os.Getwd()
-	utils.Check(err)
-	return projectPath
-}
-
-func addExtension(id string, extension string) string {
-	return fmt.Sprintf("%s.%s", id, extension)
-}
-
-func getExtension(filename string) (extension string) {
-	extension = filepath.Ext(filename)[1:]
-	return
-}
-
-func stringShouldContainOneFilter(s string, filters []string) bool {
-	for _, filter := range filters {
-		if strings.Contains(s, filter) {
-			return true
-		}
-	}
-	return false
-}
-
-func stringShouldContainAllFilters(s string, filters []string) bool {
-	count := 0
-	_filters := filters
-	for _, filter := range _filters {
-		if strings.Contains(s, filter) {
-			count++
-		}
-	}
-	return len(_filters) == count
-}
 
 func getHostname(rawurl string) string {
 	parsed, err := url.Parse(rawurl)
@@ -215,46 +143,4 @@ func createSingleFileMultiPart(key string, fileName string, file io.ReadCloser) 
 
 func calculateExponentialBackoffInSec(a uint8) float64 {
 	return math.Pow(2, float64(a))
-}
-
-func writeToPanicFile() {
-	if err := recover(); err != nil {
-
-		switch x := err.(type) {
-		case string:
-			err = x
-		case error:
-			err = x.Error()
-		default:
-			// Fallback err (per specs, error strings should be lowercase w/o punctuation
-			err = "unknown panic"
-		}
-
-		path := filepath.Join(getProjectPath(), ErrorDirectory, "panic", time.Now().UTC().String()+".txt")
-
-		stack := string(debug.Stack()[:])
-		file := io.NopCloser(strings.NewReader(fmt.Sprintf("%v\n%v", stack, err)))
-
-		writeFile(path, file)
-
-		panic(err)
-	}
-}
-
-type WaitGroupUtil struct {
-	WaitGroup *sync.WaitGroup
-}
-
-func (k *WaitGroupUtil) Wrapper(f func()) {
-	k.WaitGroup.Add(1)
-	go func() {
-		defer writeToPanicFile()
-		defer k.WaitGroup.Done()
-		f()
-	}()
-}
-
-func createUniqueId() string {
-	uuid := uuid.New()
-	return uuid.String()
 }

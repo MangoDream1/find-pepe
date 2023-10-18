@@ -64,7 +64,7 @@ func NewScraper(arg NewScraperArguments) *Scraper {
 
 func (s *Scraper) Start(startHref string) *Scraper {
 	wg := &sync.WaitGroup{}
-	wgU := WaitGroupUtil{WaitGroup: wg}
+	wgU := WaitGroupHelper{WaitGroup: wg}
 
 	s.done.Lock()
 

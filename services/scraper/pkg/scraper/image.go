@@ -38,7 +38,7 @@ func (s *Image) Start() {
 	toBeClassified := make(chan *db.Image)
 
 	done := make(chan bool)
-	wgU := WaitGroupUtil{WaitGroup: s.wg}
+	wgU := WaitGroupHelper{WaitGroup: s.wg}
 
 	wgU.Wrapper(func() {
 		tx := s.db.CreateImageTransaction()
