@@ -68,11 +68,11 @@ spec:
         - name: VISION_API_URL
           value: http://vision:5000
         - name: IMAGE_LIMIT
-          value: "50"
+          value: "0"
         - name: CLASSIFY_LIMIT
-          value: "50"
+          value: "0"
         - name: HTML_LIMIT
-          value: "1"
+          value: "0"
         - name: "POSTGRES_HOST"
           value: "postgresql"
         - name: "POSTGRES_PASSWORD"
