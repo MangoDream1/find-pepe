@@ -42,16 +42,20 @@ export class DB {
   }
 
   async getUniqueBoards(): Promise<string[]> {
-    const result = await this.Model.aggregate("board", "DISTINCT", {
-      plain: true,
-    });
-    console.log(result);
+    const result = (await this.sequelize.query(
+      `SELECT DISTINCT board FROM Images`
+    )) as [{ board: string }[], unknown];
 
-    return [];
+    return result[0].map((r) => r.board);
   }
 
   async getUniqueBoardsByCategory(catagory: Category): Promise<string[]> {
-    return [];
+    const result = (await this.sequelize.query({
+      query: `SELECT DISTINCT board FROM Images WHERE category = ?`,
+      values: [catagory],
+    })) as [{ board: string }[], unknown];
+
+    return result[0].map((r) => r.board);
   }
 
   async getImagesLocationsBySelection(
