@@ -26,12 +26,14 @@ const RAW_RUNTIME_STATE =
       [null, {\
         "packageLocation": "./",\
         "packageDependencies": [\
+          ["@types/body-parser", "npm:1.19.5"],\
           ["@types/cors", "npm:2.8.13"],\
           ["@types/express", "npm:4.17.17"],\
           ["@types/morgan", "npm:1.9.4"],\
           ["@types/node", "npm:20.5.0"],\
           ["@types/sequelize", "npm:4.28.16"],\
           ["@typescript-eslint/eslint-plugin", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:5.62.0"],\
+          ["auto-bind", "npm:5.0.1"],\
           ["body-parser", "npm:1.20.2"],\
           ["cors", "npm:2.8.5"],\
           ["eslint", "npm:8.47.0"],\
@@ -192,6 +194,15 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/@types-body-parser-npm-1.19.2-f845b7b538-c2dd533e1d.zip/node_modules/@types/body-parser/",\
         "packageDependencies": [\
           ["@types/body-parser", "npm:1.19.2"],\
+          ["@types/connect", "npm:3.4.35"],\
+          ["@types/node", "npm:20.5.0"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:1.19.5", {\
+        "packageLocation": "./.yarn/cache/@types-body-parser-npm-1.19.5-97fb106976-aebeb200f2.zip/node_modules/@types/body-parser/",\
+        "packageDependencies": [\
+          ["@types/body-parser", "npm:1.19.5"],\
           ["@types/connect", "npm:3.4.35"],\
           ["@types/node", "npm:20.5.0"]\
         ],\
@@ -803,6 +814,15 @@ const RAW_RUNTIME_STATE =
           ["get-intrinsic", "npm:1.2.1"],\
           ["is-array-buffer", "npm:3.0.2"],\
           ["is-shared-array-buffer", "npm:1.0.2"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["auto-bind", [\
+      ["npm:5.0.1", {\
+        "packageLocation": "./.yarn/cache/auto-bind-npm-5.0.1-a3b4e3a569-a703375350.zip/node_modules/auto-bind/",\
+        "packageDependencies": [\
+          ["auto-bind", "npm:5.0.1"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -3394,12 +3414,14 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./",\
         "packageDependencies": [\
           ["server", "workspace:."],\
+          ["@types/body-parser", "npm:1.19.5"],\
           ["@types/cors", "npm:2.8.13"],\
           ["@types/express", "npm:4.17.17"],\
           ["@types/morgan", "npm:1.9.4"],\
           ["@types/node", "npm:20.5.0"],\
           ["@types/sequelize", "npm:4.28.16"],\
           ["@typescript-eslint/eslint-plugin", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:5.62.0"],\
+          ["auto-bind", "npm:5.0.1"],\
           ["body-parser", "npm:1.20.2"],\
           ["cors", "npm:2.8.5"],\
           ["eslint", "npm:8.47.0"],\
