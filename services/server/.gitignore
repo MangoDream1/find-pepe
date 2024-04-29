@@ -7,6 +7,6 @@ public/image
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-# !.yarn/cache
+!.yarn/cache
 
 node_modules
