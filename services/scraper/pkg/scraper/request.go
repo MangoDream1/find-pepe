@@ -54,7 +54,7 @@ func (r *Request) Do(nAttempt uint8) (reader io.ReadCloser, statusCode int, succ
 	retry := func() (response io.ReadCloser, statusCode int, success bool) {
 		backoff := calculateExponentialBackoffInSec(nAttempt)
 		fmt.Printf("Retrying %v %v after %v\n", r.method, r.url, backoff)
-		time.Sleep(time.Second * time.Duration(nAttempt))
+		time.Sleep(time.Second * time.Duration(backoff))
 		return r.Do(nAttempt + 1)
 	}
 
