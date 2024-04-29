@@ -1,7 +1,8 @@
-- fix oomkill for vision; try prometheus https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
-- yarn pnp for app
-- prevent cronjobs from overlapping
+- LOW: fix oomkill for vision; try prometheus https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
+- LOW: yarn pnp for app
+- LOW: prevent cronjobs from overlapping
 
 - fix the node services to use the db
-  - fix skip / limit
-- change db name
+  - HIGH: fix skip / limit
+- LOW: change db name
+- HIGH: fix immediate deadlock scraper
