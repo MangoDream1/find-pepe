@@ -1,18 +1,21 @@
+import autoBind from "auto-bind";
 import express from "express";
-import { Category } from "../types";
-import { IMAGE_CATEGORIES } from "../constants";
+import { IMAGE_CATEGORIES } from "../constants.js";
+import { Category } from "../types.js";
 
 export class Validator {
-  constructor() {}
+  constructor() {
+    autoBind(this);
+  }
 
   private category =
-    (category: Category) =>
+    (category: Category | undefined) =>
     (
       req: express.Request,
       res: express.Response,
       next: express.NextFunction
     ) => {
-      if (!IMAGE_CATEGORIES.includes(category)) {
+      if (!category || !IMAGE_CATEGORIES.includes(category)) {
         res
           .status(400)
           .send(`Category should be one of: [${IMAGE_CATEGORIES.join(", ")}]`);
@@ -27,7 +30,8 @@ export class Validator {
     res: express.Response,
     next: express.NextFunction
   ) {
-    this.category(req.params.category as Category)(req, res, next);
+    const category = req.params.category as Category | undefined;
+    this.category(category)(req, res, next);
   }
 
   queryCategory(
@@ -35,6 +39,12 @@ export class Validator {
     res: express.Response,
     next: express.NextFunction
   ) {
-    this.category(req.query.category as Category)(req, res, next);
+    const category = req.query.category as Category | undefined;
+    if (!category) {
+      next();
+      return;
+    }
+
+    this.category(category)(req, res, next);
   }
 }

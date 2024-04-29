@@ -4,20 +4,18 @@ import express from "express";
 import helmet from "helmet";
 import http from "http";
 import morgan from "morgan";
-import path from "path";
 import { Sequelize } from "sequelize";
 import {
   BODY_LIMIT,
-  DATA_DIR,
+  DATA_PATH,
   NODE_ENV,
   PARAMETER_LIMIT,
   PORT,
   PUBLIC_SERVE_LOCATION,
-} from "./constants";
-import { Core } from "./core";
-import { DB } from "./db";
-import { newRouter } from "./route";
-import sequelize from "sequelize";
+} from "./constants.js";
+import { Core } from "./core.js";
+import { DB } from "./db.js";
+import { newRouter } from "./route/index.js";
 
 const config = () => {
   const app = express();
@@ -45,10 +43,7 @@ const config = () => {
   );
   app.use(morgan("common"));
 
-  app.use(
-    PUBLIC_SERVE_LOCATION,
-    express.static(path.join(__dirname, DATA_DIR))
-  );
+  app.use(PUBLIC_SERVE_LOCATION, express.static(DATA_PATH));
 
   return app;
 };

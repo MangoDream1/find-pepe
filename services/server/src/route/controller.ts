@@ -1,7 +1,8 @@
+import autoBind from "auto-bind";
 import express from "express";
-import { DB } from "../db";
-import { Category } from "../types";
-import { Core } from "../core";
+import { Core } from "../core.js";
+import { DB } from "../db.js";
+import { Category } from "../types.js";
 
 export class Controller {
   core: Core;
@@ -10,6 +11,8 @@ export class Controller {
   constructor(deps: { core: Core; db: DB }) {
     this.core = deps.core;
     this.db = deps.db;
+
+    autoBind(this);
   }
 
   async getBoards(req: express.Request, res: express.Response) {
@@ -43,13 +46,10 @@ export class Controller {
       selection.boards = [board];
     }
 
-    const images: string[] = [];
-    const imageGen = this.db.getImagesBySelection(selection);
-    for await (const img of imageGen) {
-      images.push(this.core.removeDataDirFromPath(img));
-    }
-    imageGen.return(undefined);
+    const images: string[] = (
+      await this.db.getImagesLocationsBySelection(selection)
+    ).map(this.core.dbFileNameToPublicURL);
 
-    res.status(200).send(Array.from(images));
+    res.status(200).send(images);
   }
 }

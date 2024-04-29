@@ -1,8 +1,8 @@
 import express from "express";
-import { Controller } from "./controller";
-import { Validator } from "./validator";
-import { DB } from "../db";
-import { Core } from "../core";
+import { Core } from "../core.js";
+import { DB } from "../db.js";
+import { Controller } from "./controller.js";
+import { Validator } from "./validator.js";
 
 export const newRouter = (deps: { core: Core; db: DB }) => {
   const router = express.Router();
