@@ -4,3 +4,4 @@
 - LOW: change db name
 - MEDIUM: lock fetching new images in app until previous is done; preventing super fast subsequent requests
 - LOW: update the scraper to use the common scrape package instead
+- HIGH: fix scarper from not reusing the SQL client
