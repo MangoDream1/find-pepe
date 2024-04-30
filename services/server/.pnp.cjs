@@ -46,7 +46,8 @@ const RAW_RUNTIME_STATE =
           ["morgan", "npm:1.10.0"],\
           ["pg", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:8.11.3"],\
           ["sequelize", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:6.33.0"],\
-          ["typescript", "patch:typescript@npm%3A5.1.6#optional!builtin<compat/typescript>::version=5.1.6&hash=5da071"]\
+          ["typescript", "patch:typescript@npm%3A5.1.6#optional!builtin<compat/typescript>::version=5.1.6&hash=5da071"],\
+          ["zod", "npm:3.23.5"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -3434,7 +3435,8 @@ const RAW_RUNTIME_STATE =
           ["morgan", "npm:1.10.0"],\
           ["pg", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:8.11.3"],\
           ["sequelize", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:6.33.0"],\
-          ["typescript", "patch:typescript@npm%3A5.1.6#optional!builtin<compat/typescript>::version=5.1.6&hash=5da071"]\
+          ["typescript", "patch:typescript@npm%3A5.1.6#optional!builtin<compat/typescript>::version=5.1.6&hash=5da071"],\
+          ["zod", "npm:3.23.5"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -3923,6 +3925,15 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/yocto-queue-npm-0.1.0-c6c9a7db29-dceb44c285.zip/node_modules/yocto-queue/",\
         "packageDependencies": [\
           ["yocto-queue", "npm:0.1.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["zod", [\
+      ["npm:3.23.5", {\
+        "packageLocation": "./.yarn/cache/zod-npm-3.23.5-69ca2a4eed-5c74aefe2c.zip/node_modules/zod/",\
+        "packageDependencies": [\
+          ["zod", "npm:3.23.5"]\
         ],\
         "linkType": "HARD"\
       }]\

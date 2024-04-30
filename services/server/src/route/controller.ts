@@ -4,6 +4,10 @@ import { IMAGE_RETURN_LIMIT } from "../constants.js";
 import { Core } from "../core.js";
 import { DB } from "../db.js";
 import { Category } from "../types.js";
+import {
+  getBoardsByCategoryRequestSchema,
+  retrieveImagesByQueryRequestSchema,
+} from "./schema.js";
 
 export class Controller {
   core: Core;
@@ -25,16 +29,16 @@ export class Controller {
     req: express.Request,
     res: express.Response
   ) {
+    const pReq = getBoardsByCategoryRequestSchema.parse(req);
     const boards = await this.db.getUniqueBoardsByCategory(
-      req.params.category as Category
+      pReq.params.category
     );
     res.status(200).send(boards);
   }
 
   async retrieveImagesByQuery(req: express.Request, res: express.Response) {
-    const category = req.query.category as Category | undefined;
-    const board = req.query.board as string | undefined;
-    const offset = req.query.offset ? Number(req.query.offset) : undefined;
+    const { query } = retrieveImagesByQueryRequestSchema.parse(req);
+    const { category, board, offset } = query;
 
     const selection = {
       categories: [] as Category[],

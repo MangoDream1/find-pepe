@@ -2742,6 +2742,7 @@ __metadata:
     pg: "npm:^8.11.3"
     sequelize: "npm:^6.33.0"
     typescript: "npm:*"
+    zod: "npm:^3.23.5"
   languageName: unknown
   linkType: soft
 
@@ -3154,5 +3155,12 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: 10c0/dceb44c28578b31641e13695d200d34ec4ab3966a5729814d5445b194933c096b7ced71494ce53a0e8820685d1d010df8b2422e5bf2cdea7e469d97ffbea306f
+  languageName: node
+  linkType: hard
+
+"zod@npm:^3.23.5":
+  version: 3.23.5
+  resolution: "zod@npm:3.23.5"
+  checksum: 10c0/5c74aefe2c0bc2f00d79c5a8724dae863054653bbad640964fdb009c52573349366fa70533f0dfcb912b007421294d437f063d466f9692eb77a2b620640c2794
   languageName: node
   linkType: hard
