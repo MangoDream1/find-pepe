@@ -47,4 +47,24 @@ export class Validator {
 
     this.category(category)(req, res, next);
   }
+
+  queryOffset(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) {
+    const offset = req.query.offset;
+    if (!offset) {
+      next();
+      return;
+    }
+
+    const nOffset = Number(offset);
+    if (Number.isNaN(nOffset) || nOffset < 0) {
+      res.status(400).send("Offset has to be a positive integer");
+      return;
+    }
+
+    next();
+  }
 }

@@ -1,5 +1,6 @@
 import autoBind from "auto-bind";
 import express from "express";
+import { IMAGE_RETURN_LIMIT } from "../constants.js";
 import { Core } from "../core.js";
 import { DB } from "../db.js";
 import { Category } from "../types.js";
@@ -30,10 +31,10 @@ export class Controller {
     res.status(200).send(boards);
   }
 
-  // TODO: add skip / limit
   async retrieveImagesByQuery(req: express.Request, res: express.Response) {
     const category = req.query.category as Category | undefined;
     const board = req.query.board as string | undefined;
+    const offset = req.query.offset ? Number(req.query.offset) : undefined;
 
     const selection = {
       categories: [] as Category[],
@@ -47,7 +48,10 @@ export class Controller {
     }
 
     const images: string[] = (
-      await this.db.getImagesLocationsBySelection(selection)
+      await this.db.getImagesLocationsBySelection(selection, {
+        limit: IMAGE_RETURN_LIMIT,
+        offset,
+      })
     ).map(this.core.dbFileNameToPublicURL);
 
     res.status(200).send(images);

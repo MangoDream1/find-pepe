@@ -16,7 +16,12 @@ export const newRouter = (deps: { core: Core; db: DB }) => {
     validator.paramCategory,
     controller.getBoardsByCategoryFromParam
   );
-  router.get("/", validator.queryCategory, controller.retrieveImagesByQuery);
+  router.get(
+    "/",
+    validator.queryCategory,
+    validator.queryOffset,
+    controller.retrieveImagesByQuery
+  );
 
   return router;
 };
