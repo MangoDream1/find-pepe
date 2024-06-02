@@ -2,8 +2,12 @@ FROM node:18 as BUILD
 
 WORKDIR /usr/src/app
 
+RUN yarn config set enableNetwork false
+
 COPY package.json ./
 COPY yarn.lock ./
+COPY .yarn ./
+COPY .pnp* ./
 
 RUN yarn install
 
