@@ -49,13 +49,11 @@ function App() {
 
   useEffect(() => {
     if (!imagePaths.isLoading) {
-      console.log("ENABLED SCROLL");
       window.addEventListener("scroll", onScroll);
     }
 
     // Clean-up
     return () => {
-      console.log("DISABLED SCROLL");
       window.removeEventListener("scroll", onScroll);
     };
   }, [onScroll, imagePaths.isLoading]);
