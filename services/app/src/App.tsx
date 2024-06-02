@@ -37,15 +37,6 @@ function App() {
   }, [offsetIndex]);
 
   useEffect(() => {
-    window.addEventListener("scroll", onScroll);
-
-    // Clean-up
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, [onScroll]);
-
-  useEffect(() => {
     setIndexOffset(0);
   }, [board, category]);
 
@@ -55,6 +46,19 @@ function App() {
 
   const boards = useGetBoardsByCategory(category);
   const imagePaths = useGetImagePaths({ category, board, offset: offset });
+
+  useEffect(() => {
+    if (!imagePaths.isLoading) {
+      console.log("ENABLED SCROLL");
+      window.addEventListener("scroll", onScroll);
+    }
+
+    // Clean-up
+    return () => {
+      console.log("DISABLED SCROLL");
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [onScroll, imagePaths.isLoading]);
 
   if (imagePaths.error || boards.error) return <>An error has occurred</>;
   if (
