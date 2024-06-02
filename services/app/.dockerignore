@@ -1,5 +1,4 @@
-build*
-public/image
+dist
 
 .yarn/*
 !.yarn/patches
