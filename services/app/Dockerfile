@@ -4,15 +4,9 @@ WORKDIR /usr/src/app
 
 RUN yarn config set enableNetwork false
 
-COPY package.json ./
-COPY yarn.lock ./
-COPY .yarn ./
-COPY .pnp* ./
-
-RUN yarn install
-
 COPY . .
 
+RUN yarn install
 RUN yarn build
 
 FROM nginx:1.16-alpine
