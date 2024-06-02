@@ -25,6 +25,8 @@ spec:
         env:
         - name: NODE_ENV
           value: production
+        - name: IMAGE_RETURN_LIMIT
+          value: "100"
         ports:
         - name: http-server
           containerPort: 5000

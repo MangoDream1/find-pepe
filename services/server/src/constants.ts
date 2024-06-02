@@ -12,4 +12,4 @@ export const IMAGE_CATEGORIES = ["maybe", "non-pepe", "pepe"] as const;
 
 export const PUBLIC_SERVE_LOCATION = "/images";
 
-export const IMAGE_RETURN_LIMIT = Number(process.env.BODY_LIMIT) || 50;
+export const IMAGE_RETURN_LIMIT = Number(process.env.IMAGE_RETURN_LIMIT) || 50;
