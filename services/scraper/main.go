@@ -1,13 +1,17 @@
 package main
 
 import (
+	"go-find-pepe/pkg/db"
 	"go-find-pepe/pkg/environment"
 	"go-find-pepe/pkg/scraper"
 	"go-find-pepe/pkg/utils"
 )
 
 func main() {
-	env, err := environment.ReadEnvironment()
+	scraperEnv, err := environment.ReadScraper()
+	utils.Check(err)
+
+	dbEnv, err := environment.ReadDb()
 	utils.Check(err)
 
 	var allowedHrefSubstrings = []string{"4channel.org"}
@@ -15,14 +19,13 @@ func main() {
 	var requiredHrefSubstrings = []string{"https", "boards."}
 	var allowedImageTypes = []string{".jpg", ".gif", ".png"}
 
-	newScraperArgs := &scraper.NewScraperArguments{
+	scraper := scraper.NewScraper(scraper.NewScraperArguments{
 		AllowedHrefSubstrings:  allowedHrefSubstrings,
 		RequiredHrefSubstrings: requiredHrefSubstrings,
 		AllowedImageTypes:      allowedImageTypes,
-		Environment:            *env,
-	}
-
-	scraper := scraper.NewScraper(newScraperArgs)
+		ScraperEnv:             *scraperEnv,
+		DbConnection:           db.Connect(dbEnv),
+	})
 
 	scraper.Start("https://boards.4channel.org/g/")
 }

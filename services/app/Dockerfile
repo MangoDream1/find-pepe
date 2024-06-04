@@ -2,13 +2,11 @@ FROM node:18 as BUILD
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY yarn.lock ./
-
-RUN yarn install
+RUN yarn config set enableNetwork false
 
 COPY . .
 
+RUN yarn install
 RUN yarn build
 
 FROM nginx:1.16-alpine

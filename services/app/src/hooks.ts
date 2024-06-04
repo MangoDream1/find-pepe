@@ -38,6 +38,7 @@ export function useGetBoardsByCategory(category?: Category) {
 export function useGetImagePaths(searchParams?: {
   category?: Category;
   board?: string;
+  offset?: number;
 }) {
   const queryFn = async () => {
     const url = GET_IMAGE_PATHS_URL();
@@ -46,7 +47,7 @@ export function useGetImagePaths(searchParams?: {
       for (const [key, value] of Object.entries(searchParams)) {
         if (value === undefined) continue;
 
-        url.searchParams.append(key, value);
+        url.searchParams.append(key, String(value));
       }
     }
     const response = await fetch(url);
@@ -58,7 +59,12 @@ export function useGetImagePaths(searchParams?: {
   };
 
   return useQuery<string[]>({
-    queryKey: ["imagePaths", searchParams?.category, searchParams?.board],
+    queryKey: [
+      "imagePaths",
+      searchParams?.category,
+      searchParams?.board,
+      searchParams?.offset,
+    ],
     queryFn,
   });
 }

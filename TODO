@@ -1,3 +1,5 @@
-- fix oomkill for vision; try prometheus https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
-- yarn pnp for server
-- prevent cronjobs from overlapping
+- LOW: fix oomkill for vision; try prometheus https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
+- LOW: prevent cronjobs from overlapping
+- LOW: change db name
+- LOW: update the scraper to use the common scrape package instead
+- HIGH: fix scarper from not reusing the SQL client

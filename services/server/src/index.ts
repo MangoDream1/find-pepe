@@ -1,19 +1,21 @@
 import bodyParser from "body-parser";
+import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import {
-  PORT,
-  DATA_DIR,
-  BODY_LIMIT,
-  PARAMETER_LIMIT,
-  NODE_ENV,
-  PUBLIC_SERVE_LOCATION,
-} from "./constants";
 import http from "http";
-import path from "path";
-import { router } from "./route";
 import morgan from "morgan";
-import cors from "cors";
+import { Sequelize } from "sequelize";
+import {
+  BODY_LIMIT,
+  DATA_PATH,
+  NODE_ENV,
+  PARAMETER_LIMIT,
+  PORT,
+  PUBLIC_SERVE_LOCATION,
+} from "./constants.js";
+import { Core } from "./core.js";
+import { DB } from "./db.js";
+import { newRouter } from "./route/index.js";
 
 const config = () => {
   const app = express();
@@ -41,29 +43,45 @@ const config = () => {
   );
   app.use(morgan("common"));
 
-  app.use(
-    PUBLIC_SERVE_LOCATION,
-    express.static(path.join(__dirname, DATA_DIR))
-  );
+  app.use(PUBLIC_SERVE_LOCATION, express.static(DATA_PATH));
 
-  app.use(router);
-
-  return http.createServer(app);
+  return app;
 };
 
-const server = config();
+const shutdown =
+  (deps: { sequelize: Sequelize; server: http.Server }) =>
+  async (): Promise<void> => {
+    const { server, sequelize } = deps;
 
-const shutdown = async (): Promise<void> => {
-  console.info(`Stopping server`);
+    console.info(`Stopping server`);
+    await sequelize.close();
 
-  server.close((error) => {
-    if (error) throw error;
-    console.log("Stopped server");
-    process.exit(0);
-  });
-};
+    server.close((error) => {
+      if (error) throw error;
+      console.log("Stopped server");
+      process.exit(0);
+    });
+  };
 
 const startup = async () => {
+  // TODO: put in env variables
+  const sequelize = new Sequelize("postgres", "admin", "test", {
+    dialect: "postgres",
+    host: "postgresql",
+    port: 5432,
+  });
+
+  await sequelize.authenticate();
+
+  const app = config();
+
+  const core = new Core();
+  const db = new DB({ sequelize });
+
+  app.use(newRouter({ core, db }));
+
+  const server = http.createServer(app);
+
   process.on("unhandledRejection", (err) => {
     console.error(`unhandledRejection ${err}`);
     throw err;
@@ -74,8 +92,8 @@ const startup = async () => {
     throw err;
   });
 
-  process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown({ server, sequelize }));
+  process.on("SIGINT", shutdown({ server, sequelize }));
 
   server.listen(PORT, "0.0.0.0", async () => {
     console.info(`Service listening on port ${PORT} [${NODE_ENV} mode]`);

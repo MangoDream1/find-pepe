@@ -1,3 +1,4 @@
+import MenuIcon from "@mui/icons-material/Menu";
 import {
   Drawer,
   FormControl,
@@ -10,62 +11,52 @@ import {
   Select,
 } from "@mui/material";
 import Box from "@mui/material/Box";
-import { ReactNode, useCallback, useEffect, useState } from "react";
-import { OFFSET_SIZE, SCROLL_THRESHOLD } from "./constants";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { OFFSET_SIZE, SCROLL_THRESHOLD_PX } from "./constants";
 import {
   transformPathToImagePath,
   useGetBoardsByCategory,
   useGetImagePaths,
 } from "./hooks";
 import { Category, isCategory } from "./types";
-import MenuIcon from "@mui/icons-material/Menu";
-
-function rangeFromOffset(offset: number): { from: number; to: number } {
-  return {
-    from: Math.max(offset * OFFSET_SIZE - OFFSET_SIZE, 0),
-    to: (offset + 1) * OFFSET_SIZE,
-  };
-}
 
 function App() {
-  const [offset, setOffset] = useState<number>(0);
+  const [offsetIndex, setIndexOffset] = useState<number>(0);
   const [category, setCategory] = useState<Category | undefined>(undefined);
   const [board, setBoard] = useState<string | undefined>(undefined);
   const [showMenu, setShowMenu] = useState<boolean>(false);
-  const [maxOffset, setMaxOffset] = useState<number>(0);
-
-  const boards = useGetBoardsByCategory(category);
-  const imagePaths = useGetImagePaths({ category, board });
 
   const onScroll = useCallback(() => {
     const bottom =
-      Math.ceil(window.innerHeight + window.scrollY) + SCROLL_THRESHOLD >=
+      Math.ceil(window.innerHeight + window.scrollY) + SCROLL_THRESHOLD_PX >=
       document.documentElement.scrollHeight;
 
-    if (bottom && offset < maxOffset) {
-      setOffset(offset + 1);
+    if (bottom) {
+      setIndexOffset(offsetIndex + 1);
     }
-  }, [offset, maxOffset]);
+  }, [offsetIndex]);
 
   useEffect(() => {
-    window.addEventListener("scroll", onScroll);
+    setIndexOffset(0);
+  }, [board, category]);
+
+  const offset = useMemo(() => {
+    return Math.max(offsetIndex * OFFSET_SIZE - OFFSET_SIZE, 0);
+  }, [offsetIndex]);
+
+  const boards = useGetBoardsByCategory(category);
+  const imagePaths = useGetImagePaths({ category, board, offset: offset });
+
+  useEffect(() => {
+    if (!imagePaths.isLoading) {
+      window.addEventListener("scroll", onScroll);
+    }
 
     // Clean-up
     return () => {
       window.removeEventListener("scroll", onScroll);
     };
-  }, [onScroll]);
-
-  useEffect(() => {
-    setOffset(0);
-  }, [board, category]);
-
-  useEffect(() => {
-    if (!imagePaths.data) return;
-    setMaxOffset(
-      Math.max(Math.ceil(imagePaths.data.length / OFFSET_SIZE) - 1, 0)
-    );
-  }, [imagePaths.data]);
+  }, [onScroll, imagePaths.isLoading]);
 
   if (imagePaths.error || boards.error) return <>An error has occurred</>;
   if (
@@ -89,18 +80,16 @@ function App() {
           setBoard={setBoard}
         />
       </MenuDrawer>
-      <Images imagePaths={imagePaths.data} offset={offset} />
+      <Images imagePaths={imagePaths.data} />
     </>
   );
 }
 
-function Images(props: { imagePaths: string[]; offset: number }) {
-  const { from, to } = rangeFromOffset(props.offset);
-
+function Images(props: { imagePaths: string[] }) {
   return (
     <Box>
       <ImageList variant="masonry" cols={5}>
-        {props.imagePaths.slice(from, to).map((s, index) => {
+        {props.imagePaths.map((s, index) => {
           return (
             <ImageListItem key={(index % 5) * 100000000 + index}>
               <img

@@ -2,25 +2,27 @@ package scraper
 
 import (
 	"fmt"
+	"go-find-pepe/pkg/db"
 	"go-find-pepe/pkg/environment"
 	"sync"
 )
 
 type Scraper struct {
-	htmlScraper  *HtmlScraper
+	htmlScraper  *Html
 	imageScraper *Image
 	wg           *sync.WaitGroup
 	done         *sync.Mutex
 }
 
 type NewScraperArguments struct {
-	environment.Environment
+	environment.ScraperEnv
 	AllowedHrefSubstrings  []string
 	RequiredHrefSubstrings []string
 	AllowedImageTypes      []string
+	*db.DbConnection
 }
 
-func NewScraper(arg *NewScraperArguments) *Scraper {
+func NewScraper(arg NewScraperArguments) *Scraper {
 	imageHrefs := make(chan string)
 
 	mutex := &sync.Mutex{}
@@ -32,15 +34,16 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 		panic("Failed to do VISION_API_URL health")
 	}
 
-	html := &HtmlScraper{
+	html := &Html{
 		allowedHrefSubstrings:  arg.AllowedHrefSubstrings,
 		requiredHrefSubstrings: arg.RequiredHrefSubstrings,
 		wg:                     wg,
 		done:                   mutex,
 		imageHrefs:             imageHrefs,
 		htmlLimit:              arg.HtmlLimit,
+		db:                     arg.InitHtml(),
 	}
-	imageScraper := &Image{
+	image := &Image{
 		allowedImageTypes: arg.AllowedImageTypes,
 		visionApiUrl:      arg.VisionApiUrl,
 		wg:                wg,
@@ -48,10 +51,11 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 		imageHrefs:        imageHrefs,
 		imageLimit:        arg.ImageLimit,
 		classifyLimit:     arg.ClassifyLimit,
+		db:                arg.InitImage(),
 	}
 
 	return &Scraper{
-		imageScraper: imageScraper,
+		imageScraper: image,
 		htmlScraper:  html,
 		wg:           wg,
 		done:         mutex,
@@ -60,7 +64,7 @@ func NewScraper(arg *NewScraperArguments) *Scraper {
 
 func (s *Scraper) Start(startHref string) *Scraper {
 	wg := &sync.WaitGroup{}
-	wgU := WaitGroupUtil{WaitGroup: wg}
+	wgU := WaitGroupHelper{WaitGroup: wg}
 
 	s.done.Lock()
 
